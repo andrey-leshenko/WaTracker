@@ -16,10 +16,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
         whatsAppWebView.contentWindow.postMessage('hello', '*');
     });
 
-    window.onmessage = function(e){
-        console.log('Guest message', e.data);
-    }
-
     whatsAppWebView.addEventListener('consolemessage', function(e) {
         console.log('Guest page: ', e.message);
     });
@@ -41,7 +37,56 @@ document.addEventListener("DOMContentLoaded", function(event) {
     // });
 });
 
-// var port = null;
+var State = {
+    LOGGED_OUT: 0,
+    LOGGED_IN: 1,
+    RECORDING: 2
+};
+
+var state = State.LOGGED_OUT;
+
+window.onmessage = function(e) {
+    if (typeof e.data === 'string');
+
+    switch(e.data) {
+        case 'wa_stream_start':
+            state = State.RECORDING;
+            break;
+        case 'wa_stream_end':
+            if (state == State.RECORDING) {
+                state = State.LOGGED_IN;
+            }
+            break;
+        case 'wa_logged_in':
+            if (state == State.LOGGED_OUT) {
+                state = State.LOGGED_IN;
+            }
+            break;
+        case 'wa_logged_out':
+            state = State.LOGGED_OUT;
+            break;
+    }
+
+    var text;
+
+    switch(state) {
+        case State.LOGGED_OUT:
+            text = 'Sign in to WhatsApp to begin recording:';
+            break;
+        case State.LOGGED_IN:
+            text = '...';
+            break;
+        case State.RECORDING:
+            text = 'Recording';
+            break;
+    }
+
+    document.getElementById('heading').innerText = text;
+
+    console.log('Guest message', e.data);
+}
+
+var port = null;
 
 // window.addEventListener('wa_session_began', function() {
 //     if (!port)

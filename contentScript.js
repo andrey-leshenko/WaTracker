@@ -1,74 +1,56 @@
 console.log('contentScript.js running');
 
-function injectFunction(f) {
+document.addEventListener('DOMContentLoaded', function() {
     var script = document.createElement('script');
-    script.id = 'websocket-interception-script';
     script.setAttribute('type', 'text/javascript');
-    script.textContent = '(' + f + ')();';
-
-    (document.body || document.head || document.documentElement).appendChild(script);
-}
+    script.textContent = '(' + presenceCapture + ')();';
+    document.body.appendChild(script);
+});
 
 function presenceCapture() {
-    // var waitForStore = setInterval(function() {
-    //     //console.log('interception.js:', 'searching for window.Store');
-    //     //console.log(window.Store.Wap);
-    //     document.dispatchEvent(new CustomEvent('lol_cat'));
-    // }, 1000);
-
     var parentWindow = null;
 
     window.onmessage = function(e){
-        if (e.data == 'hello') {
-            debugger;
-            console.log(e);
-            console.log('src', e.source);
-            parentWindow = e.source;
-            e.source.postMessage(!!window.Store.Stream, '*');
-        }
+        if (e.data !== 'hello')
+            return;
+        parentWindow = e.source;
     };
+
+    var waitForStore = setInterval(function() {
+        if (window.Store && window.Store.Stream) {
+            clearInterval(waitForStore);
+            start();
+        }
+    }, 1);
+
+    function start() {
+        console.log('interception.js: start()')
+
+        var _streamHandle = Store.Stream.handle;
+        Store.Stream.handle = function() {
+            console.info('Stream.handle:', arguments, arguments[0]);
+            switch (arguments[0][0]) {
+                case 'awake':
+                    parentWindow.postMessage('wa_stream_start', '*');
+                    //subscribeToAll();
+                    break;
+                case 'asleep':
+                    parentWindow.postMessage('wa_stream_end', '*');
+                    // Store.Wap.presenceSubscribe(window.Wa.me);
+                    // dispatchEvent(new CustomEvent('wa_session_ended'));
+                    break;
+            }
+
+            return _streamHandle.apply(Store.Stream, arguments);
+        };
+
+        var _phoneAuthed = Store.Stream._values.phoneAuthed;
+        Object.defineProperty(Store.Stream._values, 'phoneAuthed', {
+            get: function() { return _phoneAuthed; },
+            set: function(newValue) {
+                _phoneAuthed = newValue;
+                parentWindow.postMessage(_phoneAuthed ? 'wa_logged_in' : 'wa_logged_out', '*');
+            },
+        });
+    }
 }
-
-document.addEventListener("DOMContentLoaded", function(event) {
-    injectFunction(presenceCapture);
-    document.dispatchEvent(new CustomEvent('lol_cat'));
-});
-
-
-
-// window.Store = "NAPALM";
-
-// var waitForStore = setInterval(function() {
-//     //console.log('interception.js:', 'searching for window.Store');
-//     console.log(window.Store);
-//     if (true)
-//         return;
-//     console.log('interception.js:', 'window.Store found');
-//     clearInterval(waitForStore);
-//     onStoreLoaded();
-// }, 100);
-
-// function onStoreLoaded() {
-//     Store.Stream._phoneAuthed = Store.Stream.phoneAuthed;
-
-//     Object.defineProperty(Store.Stream, 'phoneAuthed', {
-//         get: function() { return Store.Stream._phoneAuthed; },
-//         set: function(authed) {
-//             console.log('interception.js:', 'Store.Stream.phoneAuthed changed to', authed);
-//             Store.Stream._phoneAuthed = authed;
-//             if (authed)
-//                 dispatchEvent(new CustomEvent('wa_loged_in'));
-//             else
-//                 dispatchEvent(new CustomEvent('wa_loged_out'));
-//         },
-//         enumerable: true,
-//         configurable: true
-//     });
-// }
-
-// function dispatchEvent(event) {
-//     document.documentElement.dispatchEvent(event);
-// }
-
-// dispatchEvent(new CustomEvent('wa_logged_in'));
-
