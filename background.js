@@ -18,6 +18,7 @@ chrome.runtime.onConnect.addListener(function(port) {
         chrome.power.requestKeepAwake('system');
 
     port.onMessage.addListener(function(presenceMsg) {
+        console.log(presenceMsg);
     });
 
     port.onDisconnect.addListener(function() {
