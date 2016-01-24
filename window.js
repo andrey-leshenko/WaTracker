@@ -1,6 +1,13 @@
 console.log('window.js running');
 
+chrome.runtime.getBackgroundPage(function(bg) {
+    chrome.fileSystem.getDisplayPath(bg.storageFolder, function(displayPath) {
+        document.getElementById('storage-folder').innerText = displayPath;
+    });
+});
+
 document.addEventListener("DOMContentLoaded", function(event) {
+    return;
     console.log('window.js: onload');
 
     var whatsAppWebView = document.getElementById('wa_webview');

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        body {
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .space {
+          flex: 1 1 auto;
+        }
+
+        #select-file-continer {
+            margin-top: 4em;
+            display: flex;
+            width: 100%;
+        }
+
+        .h-flex {
+            display: flex;
+            width: 50%;
+        }
+
+        #selected-file {
+            margin-left: 1em;
+            flex-grow: 1;
+            font-weight: bold;
+        }
+
+        #title-main {
+            padding: 0.8em 4em;
+        }
+
+        #main {
+            padding: 0.8em 4em;
+        }
+
+
+        #footer {
+            padding: 0.85em 4em;
+        }
+
+        #title-main {
+            background-color: white;
+        }
+
+        #title-main {
+            font-size: 1.4em;
+            font-weight: bold;
+            border-bottom: 1px solid rgb(160,160,160);
+        }
+
+        #main {
+
+        }
+
+        #footer {
+            position:fixed;
+            bottom: 0;
+            width: 100%;
+            height: 2.3em;
+            border-top: 1px solid rgb(160,160,160);
+        }
+
+        .buttons {
+            position:fixed;
+            bottom: 1em;
+            right: 4em;
+        }
+
+        #cancel-button {
+            margin-left: 1em;
+        }
+
+        button {
+            padding: auto 1em;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="title-main">
+        Select a folder for storing the collected data
+    </div>
+    <div id="main">
+        <p>
+            WaTracker will store the presence information it queries in the following folder.
+        </p>
+        <div id="select-file-continer">
+            <div>
+                Selected folder: 
+            </div>
+            <div id="selected-file">
+                No folder selected
+            </div>
+            <button id="change-button">
+                Change
+            </button>
+        </div>
+    </div>
+    <div id="footer" >
+        <div class="buttons">
+                <button id="save-button" disabled="true">
+                    Save
+                </button>
+                <button id="cancel-button">
+                    Cancel
+                </button>
+        </div>
+    </div>
+
+    <script src="selectStorageFolder.js" type="text/javascript"></script>
+</body>
+</html>
