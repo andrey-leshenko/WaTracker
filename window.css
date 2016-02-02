@@ -1,4 +1,15 @@
 webview {
-	width: 100%;
-	height: 50em;
+	width: 40em;
+	height: 30em;
+}
+
+#text_selectedFolder {
+	display: inline-block;
+	width: 30em;
+	margin-left: 1em;
+	font-weight: bold;
+}
+
+button {
+	padding: auto 1em;
 }

@@ -1,50 +1,64 @@
-var bg_record_q = true,
-    bg_prevent_shutdown_q = true;
+var settings = {
+    recordQ: true,
+    preventShutdownQ: true,
+    storageFolderRetainId: null,
+}
 
-var storageFolder = null;
+var mem = {
+    mainWindow: null,
+    storageFolder: null,
+}
 
-function openMainWindow() {
+function saveSettings() {
+    chrome.storage.local.set({'settings': settings});
+}
+
+{ // Restore the settings
+    chrome.storage.local.get('settings', function(values) {
+        if (!values['settings'])
+            return;
+
+        settings = values['settings'];
+
+        { // Restore the storage folder
+            if (settings.storageFolderRetainId) {
+                chrome.fileSystem.restoreEntry(settings.storageFolderRetainId, function(entry) {
+                    mem.storageFolder = entry;
+                    if (mem.mainWindow)
+                        mem.mainWindow.storageFolderFound();
+                });
+            }
+        }
+    });
+}
+
+function setStorageFolder(newFolder) {
+    mem.storageFolder = newFolder;
+    if (newFolder == null) {
+        settings.storageFolderRetainId = null;
+    }
+    else {
+        settings.storageFolderRetainId = chrome.fileSystem.retainEntry(mem.storageFolder);
+    }
+    saveSettings();
+}
+
+chrome.app.runtime.onLaunched.addListener(function() {
     chrome.app.window.create('window.html', {
         'outerBounds': {
             'width': 900,
             'height': 750
         }
-    });
-}
-
-function openSelectStorageFolder() {
-    chrome.app.window.create('selectStorageFolder.html', {
-        'outerBounds': {
-            'width': 500,
-            'height': 400
-        }
-    });
-}
-
-chrome.app.runtime.onLaunched.addListener(function() {
-    if (storageFolder) {
-        openMainWindow()
-        return;
-    }
-
-    chrome.storage.local.get('storage_folder_id', function(values) {
-        if (values['storage_folder_id'] == undefined) {
-            openSelectStorageFolder()
-        }
-        else {
-            storageFolder = chrome.fileSystem.restoreEntry(dirId, function(entry) {
-                storageFolder = entry;
-                openMainWindow();
-            });
-        }
+    }, function(wnd) {
+        data.mainWindow = wnd;
     });
 });
 
 chrome.runtime.onConnect.addListener(function(port) {
-    if (!bg_record_q)
+    if (!settings.recordQ)
         return;
 
-    if (bg_prevent_shutdown_q)
+    if (settings.preventShutdownQ)
         chrome.power.requestKeepAwake('system');
 
     port.onMessage.addListener(function(presenceMsg) {
@@ -55,9 +69,3 @@ chrome.runtime.onConnect.addListener(function(port) {
         chrome.power.releaseKeepAwake();
     });
 });
-
-function setStorageFolder(dir) {
-    storageFolder = dir;
-    var retainId = chrome.fileSystem.retainEntry(dir);
-    chrome.storage.local.set({'storage_folder_id': retainId});
-}

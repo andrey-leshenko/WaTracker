@@ -5,14 +5,39 @@
 		<link rel="stylesheet" type="text/css" href="window.css">
 	</head>
 	<body>
-		<p>
-			Saving To: 
-			<span id="storage-folder">Unknown</span>
-		<p>
-		<h1 id="status">
-			Sign in to WhatsApp to begin recording:
-		</h1>
-		<!-- <webview id="wa_webview" src="https://web.whatsapp.com/"></webview> -->
+		<section id="section_selectFolder">
+			<h2>
+				1. Select storage folder
+			</h2>
+
+			<div id="select-file-continer">
+				Selected folder:
+				<span id="text_selectedFolder">
+					No folder selected
+				</span>
+				<button id="button_selectStorageFolder">
+					Change
+				</button>
+				<button id="button_clearStorageFolder">
+					Clear
+				</button>
+			</div>
+		</section>
+		<section id="section_signin">
+			<h2>
+				2. Sign in to WhatsApp
+			</h2>
+			<webview id="wa_webview" src="https://web.whatsapp.com/"></webview>
+		</section>
+		<section id="section_record">
+			<h2>
+				3. Review recording settings
+			</h2>
+			<h1 id="status" style="visibility: hidden;">
+				Sign in to WhatsApp to begin recording:
+			</h1>
+		</section>
+		
 		<script src="window.js"></script>
 	</body>
 </html>
