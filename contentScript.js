@@ -1,5 +1,3 @@
-console.log('contentScript.js running');
-
 document.addEventListener('DOMContentLoaded', function() {
     var script = document.createElement('script');
     script.setAttribute('type', 'text/javascript');
@@ -8,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function presenceCapture() {
-    var parentWindow = null;
+    parentWindow = null;
 
     window.onmessage = function(e){
         if (e.data === 'hello')
@@ -16,14 +14,16 @@ function presenceCapture() {
     };
 
     var waitForStore = setInterval(function() {
-        if (window.Store && window.Store.Stream) {
+        if (window.Store && window.Store.Stream && window.Store.Presence) {
             clearInterval(waitForStore);
             start();
         }
-    }, 1);
+    }, 15);
 
     function start() {
-        console.log('interception.js: start()');
+        if (false) {
+            parentWindow = window;
+        }
 
         ///// Intercept presence updates /////
 
@@ -44,12 +44,11 @@ function presenceCapture() {
                 deny: msg.deny
             };
 
-            console.log('Presence update:', msgCopy);
             parentWindow.postMessage({type: 'wa_presence_message', value: msgCopy}, '*');
+            console.log('Presence update:', msgCopy);
 
             return _presenceHandle.apply(Store.Presence, arguments);
         };
-
 
         ///// Listen to stream state changes /////
 
@@ -64,7 +63,7 @@ function presenceCapture() {
                 case 'asleep':
                     parentWindow.postMessage({type: 'wa_stream_end'}, '*');
                     // Try to wake up the steam
-                    Store.Wap.presenceSubscribe(Wa.me);
+                    Store.Wap.presenceSubscribe(Store.Conn.me);
                     break;
             }
 
@@ -104,15 +103,61 @@ function presenceCapture() {
         }
 
         ///// Subscription /////
+        window.subscribeToAll = subscribeToAll;
 
         function subscribeToAll() {
-            var contacts = Store.Contact.toJSON();
-            console.log('Subscribing to all contacts:', contacts);
+            parentWindow.postMessage({type: 'wa_subscribing'}, '*');
+            console.log(Store.Presence.toArray().length);
 
-            for (var i = 0; i < contacts.length; i++) {
-                if (Wa.isUserWid(contacts[i].id))
-                    Store.Wap.presenceSubscribe(contacts[i].id);
-            }
+            Store.Presence.toArray().forEach(function(c) {
+                window.Store.Wap.presenceSubscribe(c.id);
+                window.Store.Wap.lastseenFind(c.id);
+                c.subscribe();
+                console.log("state: " + c.chatstate.t);
+                return;
+
+                if (c.isGroup)
+                    return;
+
+                if (!c.isSubscribed) {
+                    window.Store.Wap.lastseenFind(c.id);
+                    c.subscribe();
+                    console.log("subscribing for " + c.id);
+                }
+                else {
+                    console.log("fake message for " + c.id);
+                    var msg = {
+                        id: c.id,
+                        type: c.isOnline ? 'available'  : 'unavailable',
+                        t: c.isOnline ? getCurrentTime() : c.t,
+                        sendT: getCurrentTime()
+                    };
+
+                    if (!c.isOnline) {
+                        // If he is unavailable but we don't know his last-seen time,
+                        // he's denying it!
+                        msg.deny = !c.t;
+                    }
+
+                    parentWindow.postMessage({type: 'wa_fake_presence_message', value: msg}, '*');
+                }
+            });
+            // var contacts = Store.Contact.toJSON();
+            // console.log('Subscribing to all ' + contacts.length + ' contacts:', contacts);
+
+            // function endsWith(str, suffix) {
+            //     return str.indexOf(suffix, str.length - suffix.length) !== -1;
+            // }
+
+            // function isUserWid(str) {
+            //     return str && endsWith(str, '@c.us');
+            // }
+
+            // for (var i = 0; i < contacts.length; i++) {
+            //     if (isUserWid(contacts[i].id)) {
+            //         Store.Wap.presenceSubscribe(contacts[i].id);
+            //     }
+            // }
         }
 
         ///// Subscribe to all contacts when they are found /////
@@ -121,9 +166,16 @@ function presenceCapture() {
         Store.Contact.handle = function() {
             console.log('Contact.handle:', arguments);
             // At this point the contacts should be in place
-            subscribeToAll();
-            reportContactstoBg();
-            return _contactHandle.apply(Store.Contact, arguments);
+
+            var originalReturnValue = _contactHandle.apply(Store.Contact, arguments);
+
+            setTimeout(subscribeToAll, 1);
+            setTimeout(reportContactstoBg, 1);
+
+            //subscribeToAll();
+            //reportContactstoBg();
+
+            return originalReturnValue;
         };
 
         function getCurrentTime() {

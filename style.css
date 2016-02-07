@@ -1,0 +1,12 @@
+webview {
+	width: 40em;
+	height: 40em;
+}
+
+h2 {
+	font-size: 2em;
+}
+
+button {
+	padding: auto 1em;
+}
