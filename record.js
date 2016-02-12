@@ -58,7 +58,6 @@ window.onmessage = function(e) {
 
     switch (message.type) {
         case 'wa_stream_start':
-        case 'wa_presence_message':
             if (!port)
                 port = chrome.runtime.connect({name: 'presenceUpdates'});
             break;
@@ -68,7 +67,7 @@ window.onmessage = function(e) {
                 port = null;
             }
             break;
-        case 'wa_presence_message':
+        case 'wa_presence_update':
             port.postMessage(message.value);
             break;
         case 'wa_contacts':
