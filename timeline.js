@@ -1,11 +1,25 @@
+window.addEventListener('keydown', function(e) {
+    // Escape or Q key
+    if (e.keyCode == 27 || e.keyCode == 81) {
+        chrome.app.window.current().close();
+    }
+});
+
 chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
 		bg.getRecordingTimes(function(recordingTimes) {
 			bg.getContacts(function(contacts) {
 				// NOTE(Andrey): Make sure we are sorting when we need to
-				plot(shuffle(entries), shuffle(recordingTimes), shuffle(contacts));
+				shuffle(entries);
+				shuffle(recordingTimes);
+				shuffle(contacts);
+				plot(entries, recordingTimes, contacts);
 				chrome.app.window.current().onBoundsChanged.addListener(function() {
-					plot(shuffle(entries), shuffle(recordingTimes), shuffle(contacts));
+					plot(entries, recordingTimes, contacts);
+				});
+				window.addEventListener('keydown', function(e) {
+					debugger;
+					console.log(e.char);
 				});
 			});
 		});
@@ -33,9 +47,10 @@ function shuffle(array) {
 }
 
 function plot(data, recordingTimes, contactsList) {
+	console.log('plottings');
+
 	d3.select('svg').remove();
 
-	console.log('plottings');
 	var contacts = {};
 	contactsList.forEach(function(c) {
 		contacts[c.id] = c;
@@ -108,103 +123,106 @@ function plot(data, recordingTimes, contactsList) {
 		.domain(timeExtent)
 		.rangeRound([0, outerWidth]);
 
-
-
 	///// Drawing the recording sessions /////
 
-	var recordingRectsG = svg.append('g')
+	{
+		var recordingRectsG = svg.append('g')
 		.style('fill', 'rgb(247, 249, 250)')
 
-	var recordingRects = recordingRectsG.selectAll('rect').data(recordingTimes);
+		var recordingRects = recordingRectsG.selectAll('rect').data(recordingTimes);
 
-	recordingRects.enter().append('rect')
-		.attr('y', 0)
-		.attr('height', outerHeight)
+		recordingRects.enter().append('rect')
+			.attr('y', 0)
+			.attr('height', outerHeight)
 
-	recordingRects
-		.attr('x', function (d) { return xScale(d['startTime']); })
-		.attr('width', function (d) { return xScale(d['endTime']) - xScale(d['startTime']); });
+		recordingRects
+			.attr('x', function (d) { return xScale(d['startTime']); })
+			.attr('width', function (d) { return xScale(d['endTime']) - xScale(d['startTime']); });
 
-	recordingRects.exit().remove();
+		recordingRects.exit().remove();
+	}
 
 	///// Drawing the presence times /////
 
-	var linesG = svg.append('g')
-		.style('stroke', 'black')
-		.style('stroke-width', 4);
+	{
+		var linesG = svg.append('g')
+			.style('stroke', 'black')
+			.style('stroke-width', 4);
 
+		var lines = linesG.selectAll('line').data(onlineRanges);
 
-	var lines = linesG.selectAll('line').data(onlineRanges);
+		lines.enter().append('line');	
 
-	lines.enter().append('line');	
+		lines
+			.attr('x1', function (d){ return xScale(d[0]['time']); })
+			.attr('y1', function (d){ return yScale(d[0]['id']); })
+			.attr('x2', function (d){ return xScale(d[1]['time']); })
+			.attr('y2', function (d){ return yScale(d[1]['id']); })
+			.append('title').text(function (d){ return idToName(d[1]['id']); });
 
-	lines
-		.attr('x1', function (d){ return xScale(d[0]['time']); })
-		.attr('y1', function (d){ return yScale(d[0]['id']); })
-		.attr('x2', function (d){ return xScale(d[1]['time']); })
-		.attr('y2', function (d){ return yScale(d[1]['id']); })
-		.append('title').text(function (d){ return idToName(d[1]['id']); });
-
-	lines.exit().remove();
+		lines.exit().remove();
+	}
 
 	// TODO(Andrey): Lables
 
-	// var xLabalsG = svg.append('g');
-	// var xLabels = xLabalsG.selectAll('text').data(ids);
+	var xLabalsG = svg.append('g');
+	var xLabels = xLabalsG.selectAll('text').data(ids);
 
-	// xLabels.enter().append('text')
-	// 	.attr('x', 0)
-	// 	.style('font-family', 'Verdana')
-	// 	.style('font-size', 9);
+	xLabels.enter().append('text')
+		.attr('x', 0)
+		.style('font-family', 'Verdana')
+		.style('font-size', 9);
 
-	// xLabels
-	// 	.attr('y', function(d) { return yScale(d); })
-	// 	.text(function(d) { return d; });
+	xLabels
+		.attr('y', function(d) { return yScale(d); })
+		.text(idToName);
 
 	///// Timeticks /////
 
-	var timeTicksG = svg.append('g')
-		.style('stroke', 'rgb(128, 128, 128)')
-		.style('stroke-dasharray', '5, 2, 3, 2')
-		.style('stroke-width', '1');
+	{
+		var timeTicksG = svg.append('g')
+			.style('stroke', 'rgb(128, 128, 128)')
+			.style('stroke-dasharray', '5, 2, 3, 2')
+			.style('stroke-width', '1');
 
-	var timeScale = d3.time.scale()
-		.domain(xScale.domain().map(function(t) { return new Date(t * 1000); }))
-		.range(xScale.range);
-	
-	var timeTicks = timeScale.ticks(d3.time.hour);
-	var timeTickFormatFunction = timeScale.tickFormat();
-	
-	var timeRules = timeTicksG.selectAll('line')
-		.data(timeTicks);
+		var timeScale = d3.time.scale()
+			.domain(xScale.domain().map(function(t) { return new Date(t * 1000); }))
+			.range(xScale.range);
+		
+		var timeTicks = timeScale.ticks(d3.time.hour);
+		var timeTickFormatFunction = timeScale.tickFormat();
+		
+		var timeRules = timeTicksG.selectAll('line')
+			.data(timeTicks);
 
-	timeRules.enter().append('line')
-		.attr('y1', 0)
-		.attr('y2', outerHeight);
+		timeRules.enter().append('line')
+			.attr('y1', 0)
+			.attr('y2', outerHeight);
 
-	timeRules.attr('x1', function(d) { return xScale(d.getTime() / 1000); })
-		.attr('x2', function(d) { return xScale(d.getTime() / 1000); });
-	
-	timeRules.exit().remove();
+		timeRules.attr('x1', function(d) { return xScale(d.getTime() / 1000); })
+			.attr('x2', function(d) { return xScale(d.getTime() / 1000); });
+		
+		timeRules.exit().remove();
+	}
 		
 	///// Time labels /////
-	
-	var timeLabelsG = svg.append('g')
-		.attr('font-size', 12);
-	
-	var timeLabels = timeLabelsG.selectAll('text')
-		.data(timeTicks);
-	
-	timeLabels.enter().append('text')
-		.attr('y', 10 + 5);
-	
-	timeLabels.attr('x', function(d) { return xScale(d.getTime() / 1000) + 5; })
-		.text(function(d) { return timeTickFormatFunction(d) });
-	
-	timeLabels.exit().remove();
+
+	{
+		var timeLabelsG = svg.append('g')
+			.attr('font-size', 12);
+		
+		var timeLabels = timeLabelsG.selectAll('text')
+			.data(timeTicks);
+		
+		timeLabels.enter().append('text')
+			.attr('y', 10 + 5);
+		
+		timeLabels.attr('x', function(d) { return xScale(d.getTime() / 1000) + 5; })
+			.text(function(d) { return timeTickFormatFunction(d) });
+		
+		timeLabels.exit().remove();
+	}
 }
-
-
 
 function plotMessages(data) {
 	var circles = svg.selectAll('circle').data(modifiedData);
@@ -222,7 +240,7 @@ function plotMessages(data) {
 
 function idToName(id) {
 	var c = contacts[id];
-	return c ? c.name : id; 
+	return (c && c.name) ? c.name : id; 
 }
 
 function unique(array, f) {

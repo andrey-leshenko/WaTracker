@@ -1,3 +1,10 @@
+window.addEventListener('keydown', function(e) {
+    // Escape or Q key
+    if (e.keyCode == 27 || e.keyCode == 81) {
+        chrome.app.window.current().close();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function(event) {
     var view = document.getElementById('wa_webview');
 
