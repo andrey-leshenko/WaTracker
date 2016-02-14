@@ -1,15 +1,17 @@
 window.addEventListener('keydown', function(e) {
-    // Escape or Q key
-    if (e.keyCode == 27 || e.keyCode == 81) {
-        chrome.app.window.current().close();
-    }
-});
-
-document.addEventListener('click', function(e) {
-	if (e.ctrlKey) {
-		window.scrollTo(document.body.scrollWidth, window.scrollY);
+	// Escape or Q key
+	if (e.keyCode == 27 || e.keyCode == 81) {
+		chrome.app.window.current().close();
 	}
 });
+
+// TODO: make this work
+// document.addEventListener('click', function(e) {
+// 	if (e.ctrlKey) {
+
+// 		window.scrollTo(document.body.scrollWidth, window.scrollY);
+// 	}
+// });
 
 chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
@@ -32,13 +34,13 @@ function shuffle(array) {
 		temporaryValue,
 		randomIndex;
 
-	// While there remain elements to shuffle...
+	// While there remain elements to shuffle
 	while (0 !== currentIndex) {
-		// Pick a remaining element...
+		// Pick a remaining element
 		randomIndex = Math.floor(Math.random() * currentIndex);
 		currentIndex -= 1;
 
-		// And swap it with the current element.
+		// And swap it with the current element
 		temporaryValue = array[currentIndex];
 		array[currentIndex] = array[randomIndex];
 		array[randomIndex] = temporaryValue;

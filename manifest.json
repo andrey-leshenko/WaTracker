@@ -1,19 +1,19 @@
 {
-    "manifest_version": 2,
-    "name": "WaTracker",
-    "description": "Tracks and stores the WhatsApp activity statuses of your friends",
-    "icons": { "128": "art/icon_2_128.png" },
-    "version": "0.1",
+	"manifest_version": 2,
+	"name": "WaTracker",
+	"description": "Tracks and stores the WhatsApp activity statuses of your friends",
+	"icons": { "128": "art/icon_2_128.png" },
+	"version": "0.1",
 
-    "app": {
-        "background": {
-            "scripts": ["background.js"]
-        }
-    },
-    "permissions": [
-        "webview",
-        {"fileSystem": ["write", "retainEntries", "directory"]},
-        "power",
-        "storage"
-    ]
+	"app": {
+		"background": {
+			"scripts": ["background.js"]
+		}
+	},
+	"permissions": [
+		"webview",
+		{"fileSystem": ["write", "retainEntries", "directory"]},
+		"power",
+		"storage"
+	]
 }

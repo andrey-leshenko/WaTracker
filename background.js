@@ -1,185 +1,178 @@
-var settings = {
-    recordQ: true,
-}
+chrome.app.runtime.onLaunched.addListener(function() {
+	chrome.app.window.create('launcher.html', {
+		'outerBounds': {
+			'width': 900,
+			'height': 750
+		}
+	});
+});
 
 var presencePort = null;
 
-chrome.app.runtime.onLaunched.addListener(function() {
-    chrome.app.window.create('launcher.html', {
-        'outerBounds': {
-            'width': 900,
-            'height': 750
-        }
-    });
-});
-
 chrome.runtime.onConnect.addListener(function(port) {
-    if (!settings.recordQ)
-        return;
+	console.assert(port.name == 'presenceUpdates');
+	console.log('Recording began');
 
-    console.assert(port.name == "presenceUpdates");
-    console.log('Recording began');
+	window.presencePort = port;
+	port.onDisconnect.addListener(function() {
+		presencePort = null;
+	});
 
-    window.presencePort = port;
-    port.onDisconnect.addListener(function() {
-        presencePort = null;
-    });
+	chrome.power.requestKeepAwake('system');
+	port.onDisconnect.addListener(function() {
+		chrome.power.releaseKeepAwake();
+	});
 
-    chrome.power.requestKeepAwake('system');
-    port.onDisconnect.addListener(function() {
-        chrome.power.releaseKeepAwake();
-    });
+	rdb = openDatabase();
 
-    rdb = openDatabase();
+	///// Processing presence updates /////
 
-    ///// Processing presence updates /////
+	function time() {
+		return parseInt((new Date()).getTime() / 1000);
+	}
 
-    function time() {
-        return parseInt((new Date()).getTime() / 1000);
-    }
+	var t = time();
+	var recordingTime = {
+		startTime: t,
+		endTime: t
+	};
 
-    var t = time();
-    var recordingTime = {
-        startTime: t,
-        endTime: t
-    };
+	port.onMessage.addListener(function(presenceMsg) {
+		recordingTime.endTime = time();
 
-    port.onMessage.addListener(function(presenceMsg) {
-        recordingTime.endTime = time();
+		rdb.get(function(db) {
+			var transaction = db.transaction(['recordingTimes', 'presenceUpdates'], 'readwrite');
+			transaction.objectStore('recordingTimes')
+				.put(recordingTime);
+			transaction.objectStore('presenceUpdates')
+				.add(presenceMsg);
 
-        rdb.get(function(db) {
-            var transaction = db.transaction(['recordingTimes', 'presenceUpdates'], 'readwrite');
-            transaction.objectStore('recordingTimes')
-                .put(recordingTime);
-            transaction.objectStore('presenceUpdates')
-                .add(presenceMsg);
+			console.log(presenceMsg);
+		});
+	});
 
-            console.log(presenceMsg);
-        });
-    });
+	///// Closing the database /////
 
-    ///// Closing the database /////
+	port.onDisconnect.addListener(function() {
+		recordingTime.endTime = time();
 
-    port.onDisconnect.addListener(function() {
-        recordingTime.endTime = time();
+		rdb.get(function(db) {
+			db.transaction('recordingTimes', 'readwrite')
+				.objectStore('recordingTimes')
+				.put(recordingTime);
+			db.close();
 
-        rdb.get(function(db) {
-            db.transaction('recordingTimes', 'readwrite')
-                .objectStore('recordingTimes')
-                .put(recordingTime);
-            db.close();
-
-            console.log('Recording ended');
-        });
-    });
+			console.log('Recording ended');
+		});
+	});
 });
 
 chrome.runtime.onMessage.addListener(function(message) {
-    console.assert(message.type == 'wa_contacts');
-    var contacts = message.value;
+	console.assert(message.type == 'wa_contacts');
+	var contacts = message.value;
 
-    console.log('Recieved contact list:', contacts);
+	console.log('Recieved contact list:', contacts);
 
-    openDatabase().get(function(db) {
-        var store = db.transaction('contacts', 'readwrite')
-            .objectStore('contacts');
+	openDatabase().get(function(db) {
+		var store = db.transaction('contacts', 'readwrite')
+			.objectStore('contacts');
 
-        for (var i = 0; i < contacts.length; i++) {
-            store.put(contacts[i]);
-        }
-    });
+		for (var i = 0; i < contacts.length; i++) {
+			store.put(contacts[i]);
+		}
+	});
 });
 
 function openDatabase() {
-    var rdb = new SmartDBConnection('OnlineTimes', 1);
-    rdb.onupgradedatabase = function upgradeDatabase(db, oldVersion) {
-        console.log('Upgrading database from version', oldVersion);
-        db.createObjectStore('contacts', {'keyPath': 'id'});
-        db.createObjectStore('recordingTimes', {'keyPath': 'startTime'});
-        db.createObjectStore('presenceUpdates', {'autoIncrement': true});
-    };
-    return rdb;
+	var rdb = new SmartDBConnection('OnlineTimes', 1);
+	rdb.onupgradedatabase = function upgradeDatabase(db, oldVersion) {
+		console.log('Upgrading database from version', oldVersion);
+		db.createObjectStore('contacts', {'keyPath': 'id'});
+		db.createObjectStore('recordingTimes', {'keyPath': 'startTime'});
+		db.createObjectStore('presenceUpdates', {'autoIncrement': true});
+	};
+	return rdb;
 }
 
 function SmartDBConnection(name, version) {
-    this.onupgradedatabase = null;
+	this.onupgradedatabase = null;
 
-    var db = null;
-    var waitingRequests = [];
+	var db = null;
+	var waitingRequests = [];
 
-    this.get = function(callback) {
-        if (db) {
-            callback(db);
-        }
-        else {
-            waitingRequests.push(callback);
-        }
-    };
+	this.get = function(callback) {
+		if (db) {
+			callback(db);
+		}
+		else {
+			waitingRequests.push(callback);
+		}
+	};
 
-    {
-        var request = window.indexedDB.open(name, version);
-        var self = this;
+	{
+		var request = window.indexedDB.open(name, version);
+		var self = this;
 
-        request.onupgradeneeded = function(event) {
-            db = event.target.result;
-            self.onupgradedatabase(db, event.oldVersion);
-        };
+		request.onupgradeneeded = function(event) {
+			db = event.target.result;
+			self.onupgradedatabase(db, event.oldVersion);
+		};
 
-        request.onsuccess = function(event) {
-            db = event.target.result;
-            waitingRequests.forEach(function(request) {
-                request(db);
-            });
-            waitingRequests = null;
-        };
-    }
+		request.onsuccess = function(event) {
+			db = event.target.result;
+			waitingRequests.forEach(function(request) {
+				request(db);
+			});
+			waitingRequests = null;
+		};
+	}
 }
 
 function getObjectStore(storeName, callback) {
-    openDatabase().get(function(db) {
-        var entries = [];
+	openDatabase().get(function(db) {
+		var entries = [];
 
-        db.transaction(storeName)
-            .objectStore(storeName)
-            .openCursor()
-            .onsuccess = function(event) {
-            var cursor = event.target.result;
+		db.transaction(storeName)
+			.objectStore(storeName)
+			.openCursor()
+			.onsuccess = function(event) {
+			var cursor = event.target.result;
 
-            if (cursor) {
-                entries.push(cursor.value);
-                cursor.continue();
-            }
-            else {
-                callback(entries);
-            }
-        };
-    });
+			if (cursor) {
+				entries.push(cursor.value);
+				cursor.continue();
+			}
+			else {
+				callback(entries);
+			}
+		};
+	});
 }
 
 function getAllEntries(callback) {
-    getObjectStore('presenceUpdates', callback);
+	getObjectStore('presenceUpdates', callback);
 }
 
 function getRecordingTimes(callback) {
-    getObjectStore('recordingTimes', callback);
+	getObjectStore('recordingTimes', callback);
 }
 
 function getContacts(callback) {
-    openDatabase().get(function(db) {
-        var entries = {};
+	openDatabase().get(function(db) {
+		var entries = {};
 
-        db.transaction('contacts')
-            .objectStore('contacts')
-            .openCursor()
-            .onsuccess = function(event) {
-            var cursor = event.target.result;
-            if (cursor) {
-                entries[cursor.key] = cursor.value;
-                cursor.continue();
-            }
-            else {
-                callback(entries);
-            }
-        };
-    });
+		db.transaction('contacts')
+			.objectStore('contacts')
+			.openCursor()
+			.onsuccess = function(event) {
+			var cursor = event.target.result;
+			if (cursor) {
+				entries[cursor.key] = cursor.value;
+				cursor.continue();
+			}
+			else {
+				callback(entries);
+			}
+		};
+	});
 }
