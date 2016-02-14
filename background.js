@@ -2,6 +2,8 @@ var settings = {
     recordQ: true,
 }
 
+var presencePort = null;
+
 chrome.app.runtime.onLaunched.addListener(function() {
     chrome.app.window.create('launcher.html', {
         'outerBounds': {
@@ -18,7 +20,15 @@ chrome.runtime.onConnect.addListener(function(port) {
     console.assert(port.name == "presenceUpdates");
     console.log('Recording began');
 
+    window.presencePort = port;
+    port.onDisconnect.addListener(function() {
+        presencePort = null;
+    });
+
     chrome.power.requestKeepAwake('system');
+    port.onDisconnect.addListener(function() {
+        chrome.power.releaseKeepAwake();
+    });
 
     rdb = openDatabase();
 
@@ -61,8 +71,6 @@ chrome.runtime.onConnect.addListener(function(port) {
 
             console.log('Recording ended');
         });
-
-        chrome.power.releaseKeepAwake();
     });
 });
 
@@ -157,5 +165,21 @@ function getRecordingTimes(callback) {
 }
 
 function getContacts(callback) {
-    getObjectStore('contacts', callback);
+    openDatabase().get(function(db) {
+        var entries = {};
+
+        db.transaction('contacts')
+            .objectStore('contacts')
+            .openCursor()
+            .onsuccess = function(event) {
+            var cursor = event.target.result;
+            if (cursor) {
+                entries[cursor.key] = cursor.value;
+                cursor.continue();
+            }
+            else {
+                callback(entries);
+            }
+        };
+    });
 }

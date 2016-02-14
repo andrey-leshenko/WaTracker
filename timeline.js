@@ -5,6 +5,12 @@ window.addEventListener('keydown', function(e) {
     }
 });
 
+document.addEventListener('click', function(e) {
+	if (e.ctrlKey) {
+		window.scrollTo(document.body.scrollWidth, window.scrollY);
+	}
+});
+
 chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
 		bg.getRecordingTimes(function(recordingTimes) {
@@ -12,14 +18,9 @@ chrome.runtime.getBackgroundPage(function(bg) {
 				// NOTE(Andrey): Make sure we are sorting when we need to
 				shuffle(entries);
 				shuffle(recordingTimes);
-				shuffle(contacts);
 				plot(entries, recordingTimes, contacts);
 				chrome.app.window.current().onBoundsChanged.addListener(function() {
 					plot(entries, recordingTimes, contacts);
-				});
-				window.addEventListener('keydown', function(e) {
-					debugger;
-					console.log(e.char);
 				});
 			});
 		});
@@ -46,16 +47,18 @@ function shuffle(array) {
 	return array;
 }
 
-function plot(data, recordingTimes, contactsList) {
+function plot(data, recordingTimes, contacts) {
 	console.log('plottings');
 
-	d3.select('svg').remove();
+	var displayName = {};
 
-	var contacts = {};
-	contactsList.forEach(function(c) {
-		contacts[c.id] = c;
-	});
-	window.contacts = contacts;
+	for (var id in contacts) {
+		displayName[id] = contacts[id].name || id;
+	}
+
+	function unique(array, f) {
+		return Array.from(new Set(array.map(f)).values());
+	}
 
 	var ids = unique(data, function(d) { return d.id; });
 	ids.sort();
@@ -101,18 +104,20 @@ function plot(data, recordingTimes, contactsList) {
 		return ranges;
 	}));
 	
-	var timeExtent = d3.extent(data, function (d) { return d.time; });
+	var timeExtent = d3.extent(modifiedData, function (d) { return d.time; });
 
 	var outerWidth = (timeExtent[1] - timeExtent[0]) * 0.15;
 	var outerHeight = window.innerHeight;//ids.length * 13;
 
+	d3.select('svg').remove();
 	var svg = d3.select('body').append('svg')
 		.attr('width',  outerWidth)
 		.attr('height', outerHeight);
 
 	svg.append('rect')
 		.attr('x', 0).attr('y', 0)
-		.attr('width', outerWidth).attr('height', outerHeight)
+		.attr('width', outerWidth)
+		.attr('height', outerHeight)
 		.attr('fill', 'rgb(237, 239, 240)');
 
 	var yScale = d3.scale.ordinal()
@@ -123,7 +128,7 @@ function plot(data, recordingTimes, contactsList) {
 		.domain(timeExtent)
 		.rangeRound([0, outerWidth]);
 
-	///// Drawing the recording sessions /////
+	///// Recording sessions /////
 
 	{
 		var recordingRectsG = svg.append('g')
@@ -158,24 +163,26 @@ function plot(data, recordingTimes, contactsList) {
 			.attr('y1', function (d){ return yScale(d[0]['id']); })
 			.attr('x2', function (d){ return xScale(d[1]['time']); })
 			.attr('y2', function (d){ return yScale(d[1]['id']); })
-			.append('title').text(function (d){ return idToName(d[1]['id']); });
+			.append('title').text(function (d){ return displayName[d[1]['id']]; });
 
 		lines.exit().remove();
 	}
 
-	// TODO(Andrey): Lables
+	///// Labels /////
 
-	var xLabalsG = svg.append('g');
-	var xLabels = xLabalsG.selectAll('text').data(ids);
+	{
+		var xLabalsG = svg.append('g');
+		var xLabels = xLabalsG.selectAll('text').data(ids);
 
-	xLabels.enter().append('text')
-		.attr('x', 0)
-		.style('font-family', 'Verdana')
-		.style('font-size', 9);
+		xLabels.enter().append('text')
+			.attr('x', 0)
+			.style('font-family', 'Verdana')
+			.style('font-size', 9);
 
-	xLabels
-		.attr('y', function(d) { return yScale(d); })
-		.text(idToName);
+		xLabels
+			.attr('y', function(d) { return yScale(d); })
+			.text(function(id) { return displayName[id]; });
+	}
 
 	///// Timeticks /////
 
@@ -222,37 +229,21 @@ function plot(data, recordingTimes, contactsList) {
 		
 		timeLabels.exit().remove();
 	}
-}
 
-function plotMessages(data) {
-	var circles = svg.selectAll('circle').data(modifiedData);
+	///// Presence updates /////
 
-	circles.enter().append('circle')
-		.attr('r', 3);
+	if (false)
+	{
+		var circles = svg.selectAll('circle').data(modifiedData);
 
-	circles
-		.attr('cx', function (d) { return xScale(d['time']); })
-		.attr('cy', function (d) { return yScale(d['id']); })
-		.attr('fill', function (d) { return (d['type'] == 'available') ? 'green' : 'red'; });
+		circles.enter().append('circle')
+			.attr('r', 3);
 
-	circles.exit().remove();
-}
+		circles
+			.attr('cx', function (d) { return xScale(d['time']); })
+			.attr('cy', function (d) { return yScale(d['id']); })
+			.attr('fill', function (d) { return (d['online']) ? 'green' : 'red'; });
 
-function idToName(id) {
-	var c = contacts[id];
-	return (c && c.name) ? c.name : id; 
-}
-
-function unique(array, f) {
-	return Array.from(new Set(array.map(f)).values());
-};
-
-function scrollToRight() {
-	window.scrollTo(document.body.scrollWidth, window.scrollY);
-}
-
-document.addEventListener('click', function(e) {
-	if (e.ctrlKey) {
-		scrollToRight();
+		circles.exit().remove();
 	}
-});
+}
