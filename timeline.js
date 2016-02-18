@@ -5,49 +5,24 @@ window.addEventListener('keydown', function(e) {
 	}
 });
 
-// TODO: make this work
-// document.addEventListener('click', function(e) {
-// 	if (e.ctrlKey) {
-
-// 		window.scrollTo(document.body.scrollWidth, window.scrollY);
-// 	}
-// });
-
 chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
 		bg.getRecordingTimes(function(recordingTimes) {
 			bg.getContacts(function(contacts) {
 				// NOTE(Andrey): Make sure we are sorting when we need to
-				shuffle(entries);
-				shuffle(recordingTimes);
+				d3.shuffle(entries);
+				d3.shuffle(recordingTimes);
+
 				plot(entries, recordingTimes, contacts);
-				chrome.app.window.current().onBoundsChanged.addListener(function() {
-					plot(entries, recordingTimes, contacts);
-				});
+				// chrome.app.window.current().onBoundsChanged.addListener(function() {
+				// 	plot(entries, recordingTimes, contacts);
+				// });
+
+				// window.scrollTo(document.body.scrollWidth, window.scrollY);
 			});
 		});
 	});
 });
-
-function shuffle(array) {
-	var currentIndex = array.length,
-		temporaryValue,
-		randomIndex;
-
-	// While there remain elements to shuffle
-	while (0 !== currentIndex) {
-		// Pick a remaining element
-		randomIndex = Math.floor(Math.random() * currentIndex);
-		currentIndex -= 1;
-
-		// And swap it with the current element
-		temporaryValue = array[currentIndex];
-		array[currentIndex] = array[randomIndex];
-		array[randomIndex] = temporaryValue;
-	}
-
-	return array;
-}
 
 function plot(data, recordingTimes, contacts) {
 	console.log('plottings');
@@ -109,26 +84,92 @@ function plot(data, recordingTimes, contacts) {
 	var timeExtent = d3.extent(modifiedData, function (d) { return d.time; });
 
 	var outerWidth = (timeExtent[1] - timeExtent[0]) * 0.15;
-	var outerHeight = window.innerHeight;//ids.length * 13;
+	// var outerHeight = window.innerHeight;//ids.length * 13;
+	var outerHeight = ids.length * 20;
 
-	d3.select('svg').remove();
+	var yScale = d3.scale.ordinal()
+		.domain(ids)
+		.rangeRoundPoints([0, outerHeight]);
+
+	var yScaleInverse = function(y) {
+		var parts  = ids.length - 1;
+		var width = outerHeight / parts;
+
+		y += width / 2;
+		var index = Math.floor(y / width);
+		return ids[index];
+	};
+
+	var xScale = d3.scale.linear()
+		.domain(timeExtent)
+		.rangeRound([0, outerWidth]);
+
+
+	///// Labels /////
+
+
+	// TODO: Compute automatically
+	const PANEL_WIDTH = 120;
+
+	{
+		var lbl = d3.select('body').append('svg')
+			.attr('width', PANEL_WIDTH)
+			.attr('height', outerHeight)
+			.style({'position': 'absolute', 'top': 0, 'left': 0, 'z-index': 1});
+
+		document.addEventListener('scroll', function(e) {
+			// lbl.style('top', -window.scrollY + 'px');
+			lbl.style('left', window.scrollX);
+		});
+
+		var xLabalsG = lbl.append('g');
+
+		xLabalsG.append('rect')
+			.attr('x', 0)
+			.attr('y', 0)
+			.attr('width', PANEL_WIDTH)
+			.attr('height', outerHeight)
+			.attr('fill', '#d7d9da');
+
+		xLabalsG.append('line')
+			.attr('x1', PANEL_WIDTH).attr('x2', PANEL_WIDTH)
+			.attr('y1', 0).attr('y2', outerHeight)
+			.style({'stroke': 'black', 'stroke-width': '1px'});
+
+		var xLabels = xLabalsG.selectAll('text').data(ids);
+
+		xLabels.enter().append('text')
+			.attr('x', 0)
+			.style('font-family', 'Verdana')
+			.style('font-size', 9);
+
+		xLabels
+			.attr('y', function(d) { return yScale(d); })
+			.text(function(id) { return displayName[id]; });
+
+
+		// document.addEventListener('mousemove', function(e) {
+		// 	var id = yScaleInverse(e.pageX);
+		// 	var y = yScale(id);
+
+		// 	xLabalsG.append('rect')
+		// 		.attr('x', 0).attr('y', y)
+		// 		.attr('width', window.innerWidth).attr('height', 13)
+		// 		.style({'fill': 'green'});
+		// });
+	}
+
+	// d3.select('svg').remove();
 	var svg = d3.select('body').append('svg')
 		.attr('width',  outerWidth)
-		.attr('height', outerHeight);
+		.attr('height', outerHeight)
+		.style({'position': 'absolute', 'left': PANEL_WIDTH, 'top': 0});
 
 	svg.append('rect')
 		.attr('x', 0).attr('y', 0)
 		.attr('width', outerWidth)
 		.attr('height', outerHeight)
 		.attr('fill', 'rgb(237, 239, 240)');
-
-	var yScale = d3.scale.ordinal()
-		.domain(ids)
-		.rangeRoundPoints([0, outerHeight]);
-
-	var xScale = d3.scale.linear()
-		.domain(timeExtent)
-		.rangeRound([0, outerWidth]);
 
 	///// Recording sessions /////
 
@@ -168,22 +209,6 @@ function plot(data, recordingTimes, contacts) {
 			.append('title').text(function (d){ return displayName[d[1]['id']]; });
 
 		lines.exit().remove();
-	}
-
-	///// Labels /////
-
-	{
-		var xLabalsG = svg.append('g');
-		var xLabels = xLabalsG.selectAll('text').data(ids);
-
-		xLabels.enter().append('text')
-			.attr('x', 0)
-			.style('font-family', 'Verdana')
-			.style('font-size', 9);
-
-		xLabels
-			.attr('y', function(d) { return yScale(d); })
-			.text(function(id) { return displayName[id]; });
 	}
 
 	///// Timeticks /////
