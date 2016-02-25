@@ -9,66 +9,63 @@ chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
 		bg.getRecordingTimes(function(recordingTimes) {
 			bg.getContacts(function(contacts) {
-				// NOTE(Andrey): Make sure we are sorting when we need to
-				d3.shuffle(entries);
-				d3.shuffle(recordingTimes);
-
 				plot(entries, recordingTimes, contacts);
-				// chrome.app.window.current().onBoundsChanged.addListener(function() {
-				// 	plot(entries, recordingTimes, contacts);
-				// });
-
-				// window.scrollTo(document.body.scrollWidth, window.scrollY);
 			});
 		});
 	});
 });
 
-function plot(data, recordingTimes, contacts) {
-	console.log('plottings');
+function plot(entries, recordingTimes, contacts) {
+	d3.shuffle(entries);
+	d3.shuffle(recordingTimes);
 
-	var displayName = {};
+	///// Prepare the contacts /////
+	{
+		for (var i = 0; i < entries.length; i++) {
+			var id = entries[i].id;
+			if (contacts[id] == undefined) {
+				contacts[id] = {id: id};
+			}
+		}
 
-	for (var id in contacts) {
-		displayName[id] = contacts[id].name || id;
+		for (var id in contacts) {
+			contacts[id]._displayName = contacts[id].name || id;
+		}
 	}
 
-	function unique(array, f) {
-		return Array.from(new Set(array.map(f)).values());
-	}
+	///// Add 'offline' message at the end of each recording /////
 
-	var ids = unique(data, function(d) { return d.id; });
-	ids.sort();
-
-	var modifiedData = data.slice();
+	var myEntries = entries.slice();
 
 	recordingTimes.forEach(function(recording) {
-		ids.forEach(function(id) {
-			modifiedData.push({
+		for (var id in contacts) {
+			myEntries.push({
 				id: id,
 				time: recording['endTime'],
 				online: false,
 			});
-		});
+		}
 	});
 
-	var nested = d3.nest()
+	///// Calculate online ranges /////
+
+	var nestedById = d3.nest()
 		.key(function(d) { return d.id; })
 		.sortKeys(d3.ascending)
-		.sortValues(function(a,b) { return a.time - b.time; })
-		.entries(modifiedData);
+		.sortValues(function(a, b) { return a.time - b.time; })
+		.entries(myEntries);
 
-	var onlineRanges = d3.merge(nested.map(function(d) {
-		var presenceUpdates = d.values;
+	var onlineRanges = d3.merge(nestedById.map(function(d) {
+		var updates = d.values;
 		var ranges = [];
 		var online = false;
 
-		for (var i = 0; i < presenceUpdates.length; i++) {
-			var m = presenceUpdates[i];
+		for (var i = 0; i < updates.length; i++) {
+			var m = updates[i];
 
 			if (!online && m.online) {
-				ranges.push([m, null]);
-				online = true;
+				ranges.push([m,null]);
+				online = true
 			}
 			if (online && !m.online) {
 				ranges[ranges.length - 1][1] = m;
@@ -80,12 +77,22 @@ function plot(data, recordingTimes, contacts) {
 			ranges.pop();
 		return ranges;
 	}));
-	
-	var timeExtent = d3.extent(modifiedData, function (d) { return d.time; });
 
-	var outerWidth = (timeExtent[1] - timeExtent[0]) * 0.15;
-	// var outerHeight = window.innerHeight;//ids.length * 13;
-	var outerHeight = ids.length * 20;
+	///// Set scales /////
+
+	var scale = {
+		secondWidth: 0.15,
+		rowHeight: 10,
+		panelWidth: 120,
+		panelPaddingLeft: 5
+	};
+
+	var timeExtent = d3.extent(myEntries, function(d) { return d.time; });
+
+	var ids = Object.keys(contacts).sort(function(a, b) { return contacts[a]._displayName.localeCompare(contacts[b]._displayName); });
+
+	var outerWidth = (timeExtent[1] - timeExtent[0]) * scale.secondWidth;
+	var outerHeight = ids.length * scale.rowHeight;
 
 	var yScale = d3.scale.ordinal()
 		.domain(ids)
@@ -104,148 +111,97 @@ function plot(data, recordingTimes, contacts) {
 		.domain(timeExtent)
 		.rangeRound([0, outerWidth]);
 
-
-	///// Labels /////
-
-
-	// TODO: Compute automatically
-	const PANEL_WIDTH = 120;
-
-	{
-		var lbl = d3.select('body').append('svg')
-			.attr('width', PANEL_WIDTH)
-			.attr('height', outerHeight)
-			.style({'position': 'absolute', 'top': 0, 'left': 0, 'z-index': 1});
-
-		document.addEventListener('scroll', function(e) {
-			// lbl.style('top', -window.scrollY + 'px');
-			lbl.style('left', window.scrollX);
-		});
-
-		var xLabalsG = lbl.append('g');
-
-		xLabalsG.append('rect')
-			.attr('x', 0)
-			.attr('y', 0)
-			.attr('width', PANEL_WIDTH)
-			.attr('height', outerHeight)
-			.attr('fill', '#d7d9da');
-
-		xLabalsG.append('line')
-			.attr('x1', PANEL_WIDTH).attr('x2', PANEL_WIDTH)
-			.attr('y1', 0).attr('y2', outerHeight)
-			.style({'stroke': 'black', 'stroke-width': '1px'});
-
-		var xLabels = xLabalsG.selectAll('text').data(ids);
-
-		xLabels.enter().append('text')
-			.attr('x', 0)
-			.style('font-family', 'Verdana')
-			.style('font-size', 9);
-
-		xLabels
-			.attr('y', function(d) { return yScale(d); })
-			.text(function(id) { return displayName[id]; });
-
-
-		// document.addEventListener('mousemove', function(e) {
-		// 	var id = yScaleInverse(e.pageX);
-		// 	var y = yScale(id);
-
-		// 	xLabalsG.append('rect')
-		// 		.attr('x', 0).attr('y', y)
-		// 		.attr('width', window.innerWidth).attr('height', 13)
-		// 		.style({'fill': 'green'});
-		// });
-	}
-
-	// d3.select('svg').remove();
 	var svg = d3.select('body').append('svg')
-		.attr('width',  outerWidth)
-		.attr('height', outerHeight)
-		.style({'position': 'absolute', 'left': PANEL_WIDTH, 'top': 0});
-
-	svg.append('rect')
-		.attr('x', 0).attr('y', 0)
 		.attr('width', outerWidth)
 		.attr('height', outerHeight)
-		.attr('fill', 'rgb(237, 239, 240)');
+		.style({'position': 'absolute', 'left': scale.panelWidth, 'top': 0});
 
-	///// Recording sessions /////
-
+	///// Background /////
 	{
-		var recordingRectsG = svg.append('g')
-		.style('fill', 'rgb(247, 249, 250)')
-
-		var recordingRects = recordingRectsG.selectAll('rect').data(recordingTimes);
-
-		recordingRects.enter().append('rect')
+		svg.append('rect')
+			.attr('x', 0)
 			.attr('y', 0)
+			.attr('width', outerWidth)
 			.attr('height', outerHeight)
-
-		recordingRects
-			.attr('x', function (d) { return xScale(d['startTime']); })
-			.attr('width', function (d) { return xScale(d['endTime']) - xScale(d['startTime']); });
-
-		recordingRects.exit().remove();
+			.attr('id', 'background');
 	}
 
-	///// Drawing the presence times /////
-
+	///// Recording sessions /////
 	{
-		var linesG = svg.append('g')
-			.style('stroke', 'black')
-			.style('stroke-width', 4);
+		var recordingsGroup = svg.append('g')
+			.attr('id', 'recordings_group');
 
-		var lines = linesG.selectAll('line').data(onlineRanges);
+		var recordings = recordingsGroup.selectAll('rect')
+			.data(recordingTimes);
 
-		lines.enter().append('line');	
+		recordings.enter().append('rect')
+			.attr('y', 0)
+			.attr('height', outerHeight);
+
+		recordings
+			.attr('x', function(d) { return xScale(d['startTime']); })
+			.attr('width', function(d) { return xScale(d['endTime']) - xScale(d['startTime']); });
+
+		recordings.exit().remove();
+	}
+
+	///// Online times /////
+	{
+		var linesGroup = svg.append('g')
+			.attr('id', 'online_ranges_group');
+
+		var lines = linesGroup.selectAll('line')
+			.data(onlineRanges);
+
+		lines.enter().append('line');
 
 		lines
 			.attr('x1', function (d){ return xScale(d[0]['time']); })
 			.attr('y1', function (d){ return yScale(d[0]['id']); })
 			.attr('x2', function (d){ return xScale(d[1]['time']); })
 			.attr('y2', function (d){ return yScale(d[1]['id']); })
-			.append('title').text(function (d){ return displayName[d[1]['id']]; });
+			.append('title').text(function (d){
+				var name = contacts[d[1]['id']._displayName];
+				var time = new Date(d[0].time * 1000);
+				return name + ' at ' +  time;
+			});
 
 		lines.exit().remove();
 	}
 
 	///// Timeticks /////
-
 	{
-		var timeTicksG = svg.append('g')
-			.style('stroke', 'rgb(128, 128, 128)')
-			.style('stroke-dasharray', '5, 2, 3, 2')
-			.style('stroke-width', '1');
+		///// Lines /////
+
+		var timeTicksGroup = svg.append('g')
+			.attr('id', 'timeticks_group');
 
 		var timeScale = d3.time.scale()
 			.domain(xScale.domain().map(function(t) { return new Date(t * 1000); }))
 			.range(xScale.range);
-		
+
 		var timeTicks = timeScale.ticks(d3.time.hour);
 		var timeTickFormatFunction = timeScale.tickFormat();
-		
-		var timeRules = timeTicksG.selectAll('line')
+
+		var timeRules = timeTicksGroup.selectAll('line')
 			.data(timeTicks);
 
 		timeRules.enter().append('line')
 			.attr('y1', 0)
 			.attr('y2', outerHeight);
 
-		timeRules.attr('x1', function(d) { return xScale(d.getTime() / 1000); })
+		timeRules
+			.attr('x1', function(d) { return xScale(d.getTime() / 1000); })
 			.attr('x2', function(d) { return xScale(d.getTime() / 1000); });
 		
 		timeRules.exit().remove();
-	}
-		
-	///// Time labels /////
 
-	{
-		var timeLabelsG = svg.append('g')
+		///// Labels /////
+
+		var timeLabelsGroup = svg.append('g')
 			.attr('font-size', 12);
 		
-		var timeLabels = timeLabelsG.selectAll('text')
+		var timeLabels = timeLabelsGroup.selectAll('text')
 			.data(timeTicks);
 		
 		timeLabels.enter().append('text')
@@ -257,11 +213,10 @@ function plot(data, recordingTimes, contacts) {
 		timeLabels.exit().remove();
 	}
 
-	///// Presence updates /////
-
+	///// Debug presence updates /////
 	if (false)
 	{
-		var circles = svg.selectAll('circle').data(modifiedData);
+		var circles = svg.selectAll('circle').data(myEntries);
 
 		circles.enter().append('circle')
 			.attr('r', 3);
@@ -272,5 +227,100 @@ function plot(data, recordingTimes, contacts) {
 			.attr('fill', function (d) { return (d['online']) ? 'green' : 'red'; });
 
 		circles.exit().remove();
+	}
+
+	///// Side panel /////
+	{
+		var panel = d3.select('body').append('svg')
+			.attr('width', scale.panelWidth)
+			.attr('height', outerHeight)
+			.style({'position': 'absolute', 'top': 0, 'left': 0});
+
+		document.addEventListener('scroll', function(e) {
+			panel.style('left', window.scrollX);
+		});
+
+		var xLabelsGroup = panel.append('g');
+
+		xLabelsGroup.append('rect')
+			.attr('x', 0)
+			.attr('y', 0)
+			.attr('width', scale.panelWidth)
+			.attr('height', outerHeight)
+			.attr('id', 'panel_background');
+
+		xLabelsGroup.append('line')
+			.attr('x1', scale.panelWidth)
+			.attr('x2', scale.panelWidth)
+			.attr('y1', 0)
+			.attr('y2', outerHeight)
+			.attr('id', 'panel_border');
+
+		var xLabels = xLabelsGroup.selectAll('text')
+			.data(ids);
+
+		xLabels.enter().append('text')
+			.attr('x', scale.panelPaddingLeft)
+			.attr('alignment-baseline', 'middle')
+			.style('font-family', 'Verdana')
+			.style('font-size', 9);
+
+		xLabels
+			.attr('y', function(d) { return yScale(d); })
+			.text(function(id) { return contacts[id]._displayName; });
+
+		var overlay = d3.select('body').append('svg')
+			.attr('width', outerWidth)
+			.attr('height', outerHeight)
+			.attr('id', 'highlight_line_group')
+			// To get proper sotring of the different svg layers
+			.style('position', 'absolute')
+			.style('left', 0);
+
+		// 1. Refactor this part
+		// 2. Try drawing using only one svg
+		// 3. Make the tooltips work
+		// 4. Add tooptips for the users
+		// 5. Record for 24 hours
+		// 6. Try subscribing to random users
+
+		document.addEventListener('mousemove', function(e) {
+			var id = yScaleInverse(e.pageY);
+			var y = yScale(id);
+
+			overlay.select('rect.highlight').remove();
+
+			overlay.append('rect')
+				.attr('x', 0)
+				.attr('y', y - scale.rowHeight / 2)
+				.attr('width', outerWidth)
+				.attr('height', scale.rowHeight)
+				.attr('class', 'highlight');
+
+			// xLabelsGroup.append('rect')
+			// 	.attr('x', 0).attr('y', y)
+			// 	.attr('width', window.innerWidth).attr('height', 13)
+			// 	.style({'fill': 'green'});
+		});
+
+		var selected = overlay.append('rect.selected');
+
+		document.addEventListener('click', function(e) {
+			var id = yScaleInverse(e.pageY);
+			var y = yScale(id);
+
+			var clickedSelf = selected.attr('y') == y - scale.rowHeight / 2;
+
+			selected.remove();
+
+			if (!clickedSelf) {
+				selected = overlay.append('rect')
+					.attr('x', 0)
+					.attr('y', y - scale.rowHeight / 2)
+					.attr('width', outerWidth)
+					.attr('height', scale.rowHeight)
+					.attr('class', 'selected');
+			}
+		});
 	}
 }
