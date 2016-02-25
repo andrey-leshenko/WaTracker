@@ -23,9 +23,7 @@ function plot(entries, recordingTimes, contacts) {
 	{
 		for (var i = 0; i < entries.length; i++) {
 			var id = entries[i].id;
-			if (contacts[id] == undefined) {
-				contacts[id] = {id: id};
-			}
+			contacts[id] = contacts[id] || {id: id};
 		}
 
 		for (var id in contacts) {
@@ -59,48 +57,50 @@ function plot(entries, recordingTimes, contacts) {
 		var updates = d.values;
 		var ranges = [];
 		var online = false;
+		var onlineMessage = null;
 
 		for (var i = 0; i < updates.length; i++) {
 			var m = updates[i];
 
 			if (!online && m.online) {
-				ranges.push([m,null]);
+				onlineMessage = m;
 				online = true
 			}
 			if (online && !m.online) {
-				ranges[ranges.length - 1][1] = m;
+				ranges.push([onlineMessage, m]);
 				online = false;
 			}
 		}
 
-		if (ranges.length != 0 && ranges[ranges.length - 1][1] == null)
-			ranges.pop();
 		return ranges;
 	}));
 
-	///// Set scales /////
-
-	var scale = {
-		secondWidth: 0.15,
-		rowHeight: 10,
-		panelWidth: 120,
-		panelPaddingLeft: 5
-	};
+	///// Sizes /////
 
 	var timeExtent = d3.extent(myEntries, function(d) { return d.time; });
+	var ids = Object.keys(contacts)
+		.sort(function(a, b) { return contacts[a]._displayName.localeCompare(contacts[b]._displayName); });
 
-	var ids = Object.keys(contacts).sort(function(a, b) { return contacts[a]._displayName.localeCompare(contacts[b]._displayName); });
+	var scale = {
+		SECOND_WIDTH: 0.15,
+		ROW_HEIGHT: 10,
+		PANEL_WIDTH: 120,
+		PANEL_PADDING_LEFT: 5,
+	}
 
-	var outerWidth = (timeExtent[1] - timeExtent[0]) * scale.secondWidth;
-	var outerHeight = ids.length * scale.rowHeight;
+	var TIMELINE_WIDTH = (timeExtent[1] - timeExtent[0]) * scale.SECOND_WIDTH;
+	var OUTER_WIDTH = TIMELINE_WIDTH + scale.PANEL_WIDTH;
+	var OUTER_HEIGHT = ids.length * scale.ROW_HEIGHT;
+
+	///// Scales /////
 
 	var yScale = d3.scale.ordinal()
 		.domain(ids)
-		.rangeRoundPoints([0, outerHeight]);
+		.rangeRoundPoints([0, OUTER_HEIGHT]);
 
 	var yScaleInverse = function(y) {
 		var parts  = ids.length - 1;
-		var width = outerHeight / parts;
+		var width = OUTER_HEIGHT / parts;
 
 		y += width / 2;
 		var index = Math.floor(y / width);
@@ -109,26 +109,28 @@ function plot(entries, recordingTimes, contacts) {
 
 	var xScale = d3.scale.linear()
 		.domain(timeExtent)
-		.rangeRound([0, outerWidth]);
+		.rangeRound([0, TIMELINE_WIDTH]);
 
 	var svg = d3.select('body').append('svg')
-		.attr('width', outerWidth)
-		.attr('height', outerHeight)
-		.style({'position': 'absolute', 'left': scale.panelWidth, 'top': 0});
+		.attr('width', OUTER_WIDTH)
+		.attr('height', OUTER_HEIGHT);
+
+	var timelineGroup = svg.append('g')
+		.attr('transform', 'translate(' + scale.PANEL_WIDTH +')');
 
 	///// Background /////
 	{
-		svg.append('rect')
+		timelineGroup.append('rect')
 			.attr('x', 0)
 			.attr('y', 0)
-			.attr('width', outerWidth)
-			.attr('height', outerHeight)
+			.attr('width', OUTER_WIDTH)
+			.attr('height', OUTER_HEIGHT)
 			.attr('id', 'background');
 	}
 
 	///// Recording sessions /////
 	{
-		var recordingsGroup = svg.append('g')
+		var recordingsGroup = timelineGroup.append('g')
 			.attr('id', 'recordings_group');
 
 		var recordings = recordingsGroup.selectAll('rect')
@@ -136,7 +138,7 @@ function plot(entries, recordingTimes, contacts) {
 
 		recordings.enter().append('rect')
 			.attr('y', 0)
-			.attr('height', outerHeight);
+			.attr('height', OUTER_HEIGHT);
 
 		recordings
 			.attr('x', function(d) { return xScale(d['startTime']); })
@@ -145,35 +147,11 @@ function plot(entries, recordingTimes, contacts) {
 		recordings.exit().remove();
 	}
 
-	///// Online times /////
-	{
-		var linesGroup = svg.append('g')
-			.attr('id', 'online_ranges_group');
-
-		var lines = linesGroup.selectAll('line')
-			.data(onlineRanges);
-
-		lines.enter().append('line');
-
-		lines
-			.attr('x1', function (d){ return xScale(d[0]['time']); })
-			.attr('y1', function (d){ return yScale(d[0]['id']); })
-			.attr('x2', function (d){ return xScale(d[1]['time']); })
-			.attr('y2', function (d){ return yScale(d[1]['id']); })
-			.append('title').text(function (d){
-				var name = contacts[d[1]['id']._displayName];
-				var time = new Date(d[0].time * 1000);
-				return name + ' at ' +  time;
-			});
-
-		lines.exit().remove();
-	}
-
 	///// Timeticks /////
 	{
 		///// Lines /////
 
-		var timeTicksGroup = svg.append('g')
+		var timeTicksGroup = timelineGroup.append('g')
 			.attr('id', 'timeticks_group');
 
 		var timeScale = d3.time.scale()
@@ -188,7 +166,7 @@ function plot(entries, recordingTimes, contacts) {
 
 		timeRules.enter().append('line')
 			.attr('y1', 0)
-			.attr('y2', outerHeight);
+			.attr('y2', OUTER_HEIGHT);
 
 		timeRules
 			.attr('x1', function(d) { return xScale(d.getTime() / 1000); })
@@ -198,7 +176,7 @@ function plot(entries, recordingTimes, contacts) {
 
 		///// Labels /////
 
-		var timeLabelsGroup = svg.append('g')
+		var timeLabelsGroup = timelineGroup.append('g')
 			.attr('font-size', 12);
 		
 		var timeLabels = timeLabelsGroup.selectAll('text')
@@ -212,32 +190,12 @@ function plot(entries, recordingTimes, contacts) {
 		
 		timeLabels.exit().remove();
 	}
-
-	///// Debug presence updates /////
-	if (false)
-	{
-		var circles = svg.selectAll('circle').data(myEntries);
-
-		circles.enter().append('circle')
-			.attr('r', 3);
-
-		circles
-			.attr('cx', function (d) { return xScale(d['time']); })
-			.attr('cy', function (d) { return yScale(d['id']); })
-			.attr('fill', function (d) { return (d['online']) ? 'green' : 'red'; });
-
-		circles.exit().remove();
-	}
-
+	
 	///// Side panel /////
+		var panel = svg.append('g');
 	{
-		var panel = d3.select('body').append('svg')
-			.attr('width', scale.panelWidth)
-			.attr('height', outerHeight)
-			.style({'position': 'absolute', 'top': 0, 'left': 0});
-
 		document.addEventListener('scroll', function(e) {
-			panel.style('left', window.scrollX);
+			panel.attr('transform', 'translate(' + window.scrollX + ')');
 		});
 
 		var xLabelsGroup = panel.append('g');
@@ -245,22 +203,22 @@ function plot(entries, recordingTimes, contacts) {
 		xLabelsGroup.append('rect')
 			.attr('x', 0)
 			.attr('y', 0)
-			.attr('width', scale.panelWidth)
-			.attr('height', outerHeight)
+			.attr('width', scale.PANEL_WIDTH)
+			.attr('height', OUTER_HEIGHT)
 			.attr('id', 'panel_background');
 
-		xLabelsGroup.append('line')
-			.attr('x1', scale.panelWidth)
-			.attr('x2', scale.panelWidth)
+		panel.append('line')
+			.attr('x1', scale.PANEL_WIDTH)
+			.attr('x2', scale.PANEL_WIDTH)
 			.attr('y1', 0)
-			.attr('y2', outerHeight)
+			.attr('y2', OUTER_HEIGHT)
 			.attr('id', 'panel_border');
 
 		var xLabels = xLabelsGroup.selectAll('text')
 			.data(ids);
 
 		xLabels.enter().append('text')
-			.attr('x', scale.panelPaddingLeft)
+			.attr('x', scale.PANEL_PADDING_LEFT)
 			.attr('alignment-baseline', 'middle')
 			.style('font-family', 'Verdana')
 			.style('font-size', 9);
@@ -268,20 +226,14 @@ function plot(entries, recordingTimes, contacts) {
 		xLabels
 			.attr('y', function(d) { return yScale(d); })
 			.text(function(id) { return contacts[id]._displayName; });
+	}
 
-		var overlay = d3.select('body').append('svg')
-			.attr('width', outerWidth)
-			.attr('height', outerHeight)
-			.attr('id', 'highlight_line_group')
-			// To get proper sotring of the different svg layers
-			.style('position', 'absolute')
-			.style('left', 0);
+	{
+		var overlay = timelineGroup.append('g')
+			.attr('class', 'highlight_lines_group');
+		var overlay2 = panel.append('g')
+			.attr('class', 'highlight_lines_group');
 
-		// 1. Refactor this part
-		// 2. Try drawing using only one svg
-		// 3. Make the tooltips work
-		// 4. Add tooptips for the users
-		// 5. Record for 24 hours
 		// 6. Try subscribing to random users
 
 		document.addEventListener('mousemove', function(e) {
@@ -289,12 +241,20 @@ function plot(entries, recordingTimes, contacts) {
 			var y = yScale(id);
 
 			overlay.select('rect.highlight').remove();
+			overlay2.select('rect.highlight').remove();
 
 			overlay.append('rect')
 				.attr('x', 0)
-				.attr('y', y - scale.rowHeight / 2)
-				.attr('width', outerWidth)
-				.attr('height', scale.rowHeight)
+				.attr('y', y - scale.ROW_HEIGHT / 2)
+				.attr('width', OUTER_WIDTH)
+				.attr('height', scale.ROW_HEIGHT)
+				.attr('class', 'highlight');
+
+			overlay2.append('rect')
+				.attr('x', 0)
+				.attr('y', y - scale.ROW_HEIGHT / 2)
+				.attr('width', scale.PANEL_WIDTH)
+				.attr('height', scale.ROW_HEIGHT)
 				.attr('class', 'highlight');
 
 			// xLabelsGroup.append('rect')
@@ -304,23 +264,55 @@ function plot(entries, recordingTimes, contacts) {
 		});
 
 		var selected = overlay.append('rect.selected');
+		var selected2 = overlay2.append('rect.selected');
 
 		document.addEventListener('click', function(e) {
 			var id = yScaleInverse(e.pageY);
 			var y = yScale(id);
 
-			var clickedSelf = selected.attr('y') == y - scale.rowHeight / 2;
+			var clickedSelf = selected.attr('y') == y - scale.ROW_HEIGHT / 2;
 
 			selected.remove();
+			selected2.remove();
 
 			if (!clickedSelf) {
 				selected = overlay.append('rect')
 					.attr('x', 0)
-					.attr('y', y - scale.rowHeight / 2)
-					.attr('width', outerWidth)
-					.attr('height', scale.rowHeight)
+					.attr('y', y - scale.ROW_HEIGHT / 2)
+					.attr('width', OUTER_WIDTH)
+					.attr('height', scale.ROW_HEIGHT)
+					.attr('class', 'selected');
+				selected2 = overlay2.append('rect')
+					.attr('x', 0)
+					.attr('y', y - scale.ROW_HEIGHT / 2)
+					.attr('width', scale.PANEL_WIDTH)
+					.attr('height', scale.ROW_HEIGHT)
 					.attr('class', 'selected');
 			}
 		});
+	}
+
+	///// Online times /////
+	{
+		var linesGroup = timelineGroup.append('g')
+			.attr('id', 'online_ranges_group');
+
+		var lines = linesGroup.selectAll('line')
+			.data(onlineRanges);
+
+		lines.enter().append('line');
+
+		lines
+			.attr('x1', function (d){ return xScale(d[0]['time']); })
+			.attr('y1', function (d){ return yScale(d[0]['id']); })
+			.attr('x2', function (d){ return xScale(d[1]['time']); })
+			.attr('y2', function (d){ return yScale(d[1]['id']); })
+			.append('title').text(function (d){
+				var name = contacts[d[1]['id']]._displayName;
+				var time = new Date(d[0].time * 1000);
+				return name + ' at ' +  time;
+			});
+
+		lines.exit().remove();
 	}
 }
