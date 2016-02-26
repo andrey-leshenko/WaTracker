@@ -1,5 +1,6 @@
 function record() {
 	chrome.app.window.create('record.html', {
+		'id': 'window_record',
 		'outerBounds': {
 			'width': 900,
 			'height': 900
@@ -9,6 +10,7 @@ function record() {
 
 function timeline() {
 	chrome.app.window.create('timeline.html', {
+		'id': 'window_timeline',
 		'outerBounds': {
 			'width': 900,
 			'height': 750
@@ -18,6 +20,7 @@ function timeline() {
 
 function online() {
 	chrome.app.window.create('online.html', {
+		'id': 'window_online',
 		'outerBounds': {
 			'width': 900,
 			'height': 750
