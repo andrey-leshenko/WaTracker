@@ -20,44 +20,21 @@ function createWindow(filename, outerBounds, callback) {
 	chrome.app.window.create(filename, {id: filename, outerBounds: outerBounds}, callback);
 }
 
-function record() {
+page.button_record.addEventListener('click', function() {
 	createWindow('record.html', { 'width': 900, 'height': 900 });
-}
+});
 
-function online() {
+page.button_online.addEventListener('click', function() {
 	createWindow('online.html', { 'width': 900, 'height': 750 });
-}
+});
 
-function timeline() {
+page.button_timeline.addEventListener('click', function() {
 	let displayExtent = getDisplayExtent();
 
 	createWindow('timeline.html', { 'width': 900, 'height': 750 },
 		function(createdWindow) {
 			createdWindow.contentWindow.parent_displayTimeExtent = displayExtent;
 		});
-}
-
-page.button_record		.addEventListener('click', record);
-page.button_online		.addEventListener('click', online);
-page.button_timeline	.addEventListener('click', timeline);
-
-window.addEventListener('keydown', function(e) {
-	// R keyn
-	if (e.keyCode == 82) {
-		record();
-	}
-	// T key
-	else if (e.keyCode == 84) {
-		timeline();
-	}
-	// O key
-	else if (e.keyCode == 79) {
-		online();
-	}
-	// Escape or Q key
-	else if (e.keyCode == 27 || e.keyCode == 81) {
-		chrome.app.window.current().close();
-	}
 });
 
 function getDisplayExtent() {

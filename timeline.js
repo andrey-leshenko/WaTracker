@@ -1,12 +1,5 @@
 "use strict";
 
-window.addEventListener('keydown', function(e) {
-	// Escape or Q key
-	if (e.keyCode == 27 || e.keyCode == 81) {
-		chrome.app.window.current().close();
-	}
-});
-
 chrome.runtime.getBackgroundPage(function(bg) {
 	bg.getAllEntries(function(entries) {
 		bg.getRecordingTimes(function(recordingTimes) {
