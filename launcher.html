@@ -38,9 +38,34 @@
 			If two of your friends were texting for an hour at 3AM, you will know that too!
 		</p>
 
-		<button id="button_timeline">
-			<u>T</u>imeline view
-		</button>
+		<form id="form_timeline">
+			<button type="button" id="button_timeline">
+				<u>T</u>imeline view
+			</button>
+
+			<label for="select_display_period">Display</label>
+
+			<select id="select_display_mode" name="displayMode">
+				<option value="anytime">Anytime</option>
+				<option value="last">Last</option>
+				<option value="range">Range</option>
+			</select>
+
+			<span id="container_select_last">
+				<select id="select_last_what" name="displayLastWhat">
+					<option value="day">Day</option>
+					<option value="week">Week</option>
+					<option value="month">Month</option>
+					<option value="year">Year</option>
+				</select>
+			</span>
+			<span id="container_select_range">
+				<label for="start_date">From</label>
+				<input type="date" id="start_date" name="startDate">
+				<label for="end_date">To</label>
+				<input type="date" id="end_date" name="endDate">
+			</span>
+		</form>
 
 		<script src="launcher.js"></script>
 	</body>

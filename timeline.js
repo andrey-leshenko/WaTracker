@@ -1,3 +1,5 @@
+"use strict";
+
 window.addEventListener('keydown', function(e) {
 	// Escape or Q key
 	if (e.keyCode == 27 || e.keyCode == 81) {
@@ -16,12 +18,18 @@ chrome.runtime.getBackgroundPage(function(bg) {
 });
 
 function plot(inputEntries, inputRecordingTimes, inputContacts) {
-	"use strict";
+	let timeExtent = window.parent_displayTimeExtent || [0, Infinity];
+
+	let startTime = timeExtent[0];
+	let endTime = timeExtent[1];
+
+	let shownEntries = inputEntries.filter((d) => (d.time > startTime && d.time < endTime));
+	let shownRecordingTimes = inputRecordingTimes.filter((d) => (d.startTime < endTime && d.endTime > startTime));
 
 	let data = {
-		contacts: fullContacts(inputContacts, inputEntries),
-		recordingTimes: inputRecordingTimes,
-		onlineRanges: onlineRanges(inputEntries, inputRecordingTimes),
+		contacts: fullContacts(inputContacts, shownEntries),
+		recordingTimes: shownRecordingTimes,
+		onlineRanges: onlineRanges(shownEntries, shownRecordingTimes),
 		ids: null,
 		timeExtent: null,
 	}
@@ -31,6 +39,8 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 		d3.min(data.onlineRanges, (d) => d[0].time),
 		d3.max(data.onlineRanges, (d) => d[1].time)
 	];
+	if (data.onlineRanges.length == 0)
+		data.timeExtent= [0,0];
 
 	let size = {
 		secondWidth: 0.15,
@@ -206,7 +216,6 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 }
 
 function fullContacts(contacts, entries) {
-	"use strict";
 
 	var newContacts = {};
 
@@ -226,7 +235,6 @@ function fullContacts(contacts, entries) {
 }
 
 function onlineRanges(entries, recordingTimes) {
-	"use strict";
 
 	let myEntries = entries.slice();
 
