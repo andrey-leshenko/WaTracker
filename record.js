@@ -68,7 +68,13 @@ window.onmessage = function(e) {
 			}
 			break;
 		case 'wa_presence_update':
-			port.postMessage(message.value);
+			if (port) {
+				port.postMessage(message.value);
+			}
+			else {
+				outputToLog('Message dropped because the port is closed');
+				console.warn('Message dropped because the port is closed');
+			}
 			break;
 		case 'wa_contacts':
 			chrome.runtime.sendMessage(message);
@@ -112,3 +118,8 @@ window.onmessage = function(e) {
 		document.getElementById('heading').innerText = text;
 	}
 }
+
+chrome.power.requestKeepAwake('system');
+chrome.app.window.current().onClosed.addListener(function() {
+	chrome.power.releaseKeepAwake();
+});

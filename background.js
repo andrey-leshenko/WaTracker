@@ -19,11 +19,6 @@ chrome.runtime.onConnect.addListener(function(port) {
 		presencePort = null;
 	});
 
-	chrome.power.requestKeepAwake('system');
-	port.onDisconnect.addListener(function() {
-		chrome.power.releaseKeepAwake();
-	});
-
 	rdb = openDatabase();
 
 	///// Processing presence updates /////
