@@ -5,6 +5,7 @@ chrome.runtime.getBackgroundPage(function(bg) {
 		bg.getRecordingTimes(function(recordingTimes) {
 			bg.getContacts(function(contacts) {
 				plot(entries, recordingTimes, contacts);
+				window.scrollTo(document.body.scrollWidth, 0);
 			});
 		});
 	});
