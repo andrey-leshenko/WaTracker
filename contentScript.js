@@ -9,7 +9,7 @@ function presenceCapture() {
 	parentWindow = null;
 
 	window.onmessage = function(e){
-		if (e.data === 'hello')
+		if (e.data === 'communication_init')
 			parentWindow = e.source;
 	};
 
@@ -28,7 +28,7 @@ function presenceCapture() {
 		var online = {};
 
 		function checkState() {
-			console.log('Checking State ');
+			console.log('Checking State');
 
 			window.Store.Presence.toArray().forEach(function(c) {
 				if (!c || !c.id)
@@ -47,7 +47,7 @@ function presenceCapture() {
 					var change = {
 						id: c.id,
 						online: c.isOnline,
-						time: parseInt((new Date()).getTime() / 1000)
+						time: parseInt(new Date().getTime() / 1000)
 					};
 					parentWindow.postMessage({type: 'wa_presence_update', value: change}, '*');
 					console.log('Presence update:' + change);
@@ -83,9 +83,7 @@ function presenceCapture() {
 				_phoneAuthed = newValue;
 				var eventName = _phoneAuthed ? 'wa_logged_in' : 'wa_logged_out';
 				parentWindow.postMessage({type: eventName}, '*');
-
-				online = {};
-			},
+			}
 		});
 
 		///// Transfer the contacts to the background /////

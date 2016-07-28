@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "WaTracker",
-	"description": "Tracks and stores the WhatsApp activity statuses of your friends",
+	"description": "Tracks and stores the WhatsApp activity statuses of your friends.",
 	"icons": { "128": "art/icon128.png" },
 	"version": "0.1",
 

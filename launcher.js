@@ -12,7 +12,7 @@ let pageIds = [
 
 let page = {};
 
-for (var id of pageIds) {
+for (let id of pageIds) {
 	page[id] = document.getElementById(id);
 }
 
@@ -50,7 +50,7 @@ function getDisplayExtent() {
 	else if (displayMode == 'last') {
 		let interval = parseInterval(form.elements.displayLastWhat.value)
 
-		endTime = Math.floor(new Date().getTime() / 1000);
+		endTime = dateToSeconds(new Date());
 		startTime = endTime - interval;
 
 		function parseInterval(lastWhat) {
@@ -69,19 +69,19 @@ function getDisplayExtent() {
 		endTime = Infinity;
 
 		if (form.startDate.value)
-			startTime = parseDateToSeconds(form.startDate.value);
+			startTime = dateToSeconds(new Date(form.startDate.value));
 		if (form.endDate.value)
-			endTime = parseDateToSeconds(form.endDate.value);
+			endTime = dateToSeconds(new Date(form.endDate.value))
 
 		if (startTime > endTime) {
 			let temp = endTime;
 			endTime = startTime;
 			startTime = temp;
 		}
+	}
 
-		function parseDateToSeconds(dateString) {
-			return Math.floor(new Date(dateString) / 1000);
-		}
+	function dateToSeconds(date) {
+		return Math.floor(date.getTime() / 1000)
 	}
 
 	return [startTime, endTime];

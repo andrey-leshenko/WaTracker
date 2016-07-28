@@ -17,7 +17,7 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 	let startTime = timeExtent[0];
 	let endTime = timeExtent[1];
 
-	let shownEntries = inputEntries.filter((d) => (d.time > startTime && d.time < endTime));
+	let shownEntries = inputEntries.filter((d) => (startTime <= d.time && d.time <= endTime));
 	let shownRecordingTimes = inputRecordingTimes.filter((d) => (d.startTime < endTime && d.endTime > startTime));
 
 	let data = {
@@ -34,7 +34,7 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 		d3.max(data.onlineRanges, (d) => d[1].time)
 	];
 	if (data.onlineRanges.length == 0)
-		data.timeExtent= [0,0];
+		data.timeExtent = [0,0];
 
 	let size = {
 		secondWidth: 0.15,
@@ -210,8 +210,8 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 }
 
 function fullContacts(contacts, entries) {
-
-	var newContacts = {};
+	
+	let newContacts = {};
 
 	for (let entry of entries) {
 		newContacts[entry.id] = {id: entry.id};

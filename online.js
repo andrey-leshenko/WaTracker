@@ -9,16 +9,16 @@ chrome.runtime.getBackgroundPage(function(bg) {
 	});
 });
 
-var divs = {};
-var lastUpdate = {};
+let divs = {};
+let lastUpdate = {};
 
 function findOnline(entries, recordingTimes, contacts) {
 	///// Create a display element for each user /////
 	{
-		var container = document.getElementById('users_container');
+		let container = document.getElementById('users_container');
 
-		for (var id in contacts) {
-			var elem = document.createElement('div');
+		for (let id in contacts) {
+			let elem = document.createElement('div');
 			elem.className = 'offline';
 			elem.innerText = contacts[id].name ? contacts[id].name : id;
 			container.appendChild(elem);
@@ -28,8 +28,8 @@ function findOnline(entries, recordingTimes, contacts) {
 
 	///// Find the last update for each user /////
 	{
-		for (var i = 0; i < entries.length; i++) {
-			var update = entries[i];
+		for (let i = 0; i < entries.length; i++) {
+			let update = entries[i];
 			if (!lastUpdate[update.id] || lastUpdate[update.id].time < update.time) {
 				lastUpdate[update.id] = update;
 			}
@@ -41,7 +41,7 @@ function findOnline(entries, recordingTimes, contacts) {
 		chrome.runtime.onConnect.addListener(listenToPort);
 		
 		if (bg.presencePort) {
-			for (var id in lastUpdate) {
+			for (let id in lastUpdate) {
 				if (lastUpdate[id].online) {
 					divs[id].className = 'online';
 				}
@@ -63,7 +63,7 @@ function findOnline(entries, recordingTimes, contacts) {
 			port.onDisconnect.addListener(function() {
 				document.getElementById('usage_text').style.display = 'block';
 
-				for (var id in lastUpdate) {
+				for (let id in lastUpdate) {
 					divs[id].className = 'offline';
 				}
 			});

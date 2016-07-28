@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function(event) {
-	var view = document.getElementById('wa_webview');
+	let view = document.getElementById('wa_webview');
 
 	view.addContentScripts([{
 		name: 'contentScript',
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function(event) {
 	}]);
 
 	view.addEventListener('loadstop', function(e) {
-		view.contentWindow.postMessage('hello', '*');
+		view.contentWindow.postMessage('communication_init', '*');
 	});
 
 	view.addEventListener('consolemessage', function(e) {
@@ -18,11 +18,11 @@ document.addEventListener('DOMContentLoaded', function(event) {
 });
 
 { // The log on the record.js page
-	var logElement = document.getElementById('div_log');
-	var messages = [];
-	var MAX_LOG_LENGTH = 10;
-	var MAX_MESSAGE_LENGTH = 100;
-	var messageCounter = 0;
+	let logElement = document.getElementById('div_log');
+	let messages = [];
+	let MAX_LOG_LENGTH = 10;
+	let MAX_MESSAGE_LENGTH = 100;
+	let messageCounter = 0;
 
 	window.outputToLog = function(message) {
 		if (message.length > MAX_MESSAGE_LENGTH) {
@@ -33,26 +33,26 @@ document.addEventListener('DOMContentLoaded', function(event) {
 		messageCounter++;
 		if (messages.length > MAX_LOG_LENGTH)
 			messages.shift();
-		var log = '';
-		for (var i = 0; i < messages.length; i++) {
+		let log = '';
+		for (let i = 0; i < messages.length; i++) {
 			log += (messageCounter - (messages.length - 1 - i)) + ': ' + messages[i] + '\n';
 		}
 		logElement.innerText = log;
 	}
 }
 
-var State = {
+const State = {
 	LOGGED_OUT: 0,
 	LOGGED_IN: 1,
 	RECORDING: 2
 };
 
-var state = State.LOGGED_OUT;
+let state = State.LOGGED_OUT;
 
-var port = null;
+let port = null;
 
 window.onmessage = function(e) {
-	var message = e.data;
+	let message = e.data;
 	console.log('Guest message', message);
 	outputToLog(JSON.stringify(message));
 
@@ -81,7 +81,7 @@ window.onmessage = function(e) {
 			break;
 	}
 
-	var oldState = state;
+	let oldState = state;
 
 	switch (message.type) {
 		case 'wa_stream_start':
@@ -101,7 +101,7 @@ window.onmessage = function(e) {
 	}
 
 	if (oldState != state) {
-		var text;
+		let text;
 
 		switch(state) {
 			case State.LOGGED_OUT:

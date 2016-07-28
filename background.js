@@ -8,7 +8,7 @@ chrome.app.runtime.onLaunched.addListener(function() {
 	});
 });
 
-var presencePort = null;
+let presencePort = null;
 
 chrome.runtime.onConnect.addListener(function(port) {
 	console.assert(port.name == 'presenceUpdates');
@@ -27,8 +27,8 @@ chrome.runtime.onConnect.addListener(function(port) {
 		return parseInt((new Date()).getTime() / 1000);
 	}
 
-	var t = time();
-	var recordingTime = {
+	let t = time();
+	let recordingTime = {
 		startTime: t,
 		endTime: t
 	};
@@ -37,7 +37,7 @@ chrome.runtime.onConnect.addListener(function(port) {
 		recordingTime.endTime = time();
 
 		rdb.get(function(db) {
-			var transaction = db.transaction(['recordingTimes', 'presenceUpdates'], 'readwrite');
+			let transaction = db.transaction(['recordingTimes', 'presenceUpdates'], 'readwrite');
 			transaction.objectStore('recordingTimes')
 				.put(recordingTime);
 			transaction.objectStore('presenceUpdates')
@@ -65,22 +65,22 @@ chrome.runtime.onConnect.addListener(function(port) {
 
 chrome.runtime.onMessage.addListener(function(message) {
 	console.assert(message.type == 'wa_contacts');
-	var contacts = message.value;
+	let contacts = message.value;
 
 	console.log('Recieved contact list:', contacts);
 
 	openDatabase().get(function(db) {
-		var store = db.transaction('contacts', 'readwrite')
+		let store = db.transaction('contacts', 'readwrite')
 			.objectStore('contacts');
 
-		for (var i = 0; i < contacts.length; i++) {
+		for (let i = 0; i < contacts.length; i++) {
 			store.put(contacts[i]);
 		}
 	});
 });
 
 function openDatabase() {
-	var rdb = new SmartDBConnection('OnlineTimes', 1);
+	let rdb = new SmartDBConnection('OnlineTimes', 1);
 	rdb.onupgradedatabase = function upgradeDatabase(db, oldVersion) {
 		console.log('Upgrading database from version', oldVersion);
 		db.createObjectStore('contacts', {'keyPath': 'id'});
@@ -93,8 +93,8 @@ function openDatabase() {
 function SmartDBConnection(name, version) {
 	this.onupgradedatabase = null;
 
-	var db = null;
-	var waitingRequests = [];
+	let db = null;
+	let waitingRequests = [];
 
 	this.get = function(callback) {
 		if (db) {
@@ -106,8 +106,8 @@ function SmartDBConnection(name, version) {
 	};
 
 	{
-		var request = window.indexedDB.open(name, version);
-		var self = this;
+		let request = window.indexedDB.open(name, version);
+		let self = this;
 
 		request.onupgradeneeded = function(event) {
 			db = event.target.result;
@@ -126,13 +126,13 @@ function SmartDBConnection(name, version) {
 
 function getObjectStore(storeName, callback) {
 	openDatabase().get(function(db) {
-		var entries = [];
+		let entries = [];
 
 		db.transaction(storeName)
 			.objectStore(storeName)
 			.openCursor()
 			.onsuccess = function(event) {
-			var cursor = event.target.result;
+			let cursor = event.target.result;
 
 			if (cursor) {
 				entries.push(cursor.value);
@@ -155,13 +155,13 @@ function getRecordingTimes(callback) {
 
 function getContacts(callback) {
 	openDatabase().get(function(db) {
-		var entries = {};
+		let entries = {};
 
 		db.transaction('contacts')
 			.objectStore('contacts')
 			.openCursor()
 			.onsuccess = function(event) {
-			var cursor = event.target.result;
+			let cursor = event.target.result;
 			if (cursor) {
 				entries[cursor.key] = cursor.value;
 				cursor.continue();
