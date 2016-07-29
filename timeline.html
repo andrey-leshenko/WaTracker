@@ -60,5 +60,15 @@
 		<script type="text/javascript" src="keyboardCommands.js"></script>
 	</head>
 	<body>
+		<div style="position: fixed;">
+			<!--
+			There was a bug, that when I tried to keep the panel horizontally aligned to
+			the left edge of the screen by translating it on each 'scroll' event, the panel
+			won't stay in its place and instead move only after some delay.
+
+			Adding some other element with 'position: fixed' to the page suprisingly fixed
+			the issue.
+			-->
+		</div>
 	</body>
 </html>
