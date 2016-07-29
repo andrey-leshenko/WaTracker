@@ -34,8 +34,6 @@ chrome.runtime.onConnect.addListener(function(port) {
 	};
 
 	port.onMessage.addListener(function(presenceMsg) {
-		recordingTime.endTime = time();
-
 		rdb.get(function(db) {
 			let transaction = db.transaction(['recordingTimes', 'presenceUpdates'], 'readwrite');
 			transaction.objectStore('recordingTimes')
@@ -47,10 +45,32 @@ chrome.runtime.onConnect.addListener(function(port) {
 		});
 	});
 
+	let lastRun = time();
+
+	let detectSleepId = setInterval(function() {
+		let now = time();
+
+		if (now - lastRun > 15) {
+			console.log('Waking from sleep');
+
+			rdb.get(function(db) {
+				db.transaction('recordingTimes', 'readwrite')
+					.objectStore('recordingTimes')
+					.put(recordingTime);
+			});
+
+			recordingTime.startTime = now;
+			recordingTime.endTime = now;
+		}
+
+		recordingTime.endTime = now;
+		lastRun = now;
+	}, 1000);
+
 	///// Closing the database /////
 
 	port.onDisconnect.addListener(function() {
-		recordingTime.endTime = time();
+		clearInterval(detectSleepId);
 
 		rdb.get(function(db) {
 			db.transaction('recordingTimes', 'readwrite')
