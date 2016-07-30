@@ -1,4 +1,4 @@
-# <img src="art/icon64.png" style="vertical-align: bottom"> WaTracker
+# ![Icon](art/icon64.png) WaTracker
 
 WaTracker is a Chrome app that hooks into the WhatsApp web app at [web.whatsapp.com](https://web.whatsapp.com/)
 to repeatedly check if your friends are online.
