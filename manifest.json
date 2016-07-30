@@ -3,7 +3,7 @@
 	"name": "WaTracker",
 	"description": "Tracks and stores the WhatsApp activity statuses of your friends.",
 	"icons": { "128": "art/icon128.png" },
-	"version": "0.1",
+	"version": "1.0",
 
 	"app": {
 		"background": {
