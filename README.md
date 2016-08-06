@@ -13,6 +13,8 @@ and if they use it a lot you can also know when they go to sleep or wake up!
 
 Open `chrome://extensions/`, enable the "Developer mode" checkbox at the top of the page,
 press "Load unpacked extension..." and select the folder with this app.
+Now you can open WaTracker just like a regular program.
+(If you're on Windows, search for it in the Start Menu)
 
 ## How It Came to Be
 
