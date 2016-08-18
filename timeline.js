@@ -111,7 +111,8 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 		.append('title').text(function (d){
 			let name = data.contacts[d[1]['id']].displayName;
 			let time = new Date(d[0].time * 1000);
-			return name + ' at ' +  time;
+			return name + ' at ' + time.getHours() + ':' + time.getMinutes()
+				+ ', ' + time.getDate() + '/' + time.getMonth() + '/' + time.getFullYear();
 		});
 
 	{
