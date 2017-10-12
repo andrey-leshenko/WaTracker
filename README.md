@@ -2,7 +2,7 @@
 
 __NOTE:__ Google [announced](https://blog.chromium.org/2016/08/from-chrome-apps-to-web.html)
 that Chrome Apps will stop working in early 2018.
-This project may someday be rewritten as a Chrome Extension, but until the it will not be updated.
+This project may someday be rewritten as a Chrome Extension, but until then it will not be updated.
 
 WaTracker is a Chrome app that hooks into the WhatsApp web app at [web.whatsapp.com](https://web.whatsapp.com/)
 to repeatedly check if your friends are online.
