@@ -76,8 +76,8 @@ function presenceCapture() {
 
 		///// Login information /////
 
-		var _phoneAuthed = Store.Stream._values.phoneAuthed;
-		Object.defineProperty(Store.Stream._values, 'phoneAuthed', {
+		var _phoneAuthed = Store.Stream.__x_phoneAuthed;
+		Object.defineProperty(Store.Stream, '__x_phoneAuthed', {
 			get: function() { return _phoneAuthed; },
 			set: function(newValue) {
 				_phoneAuthed = newValue;
