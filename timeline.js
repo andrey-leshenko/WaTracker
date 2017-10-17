@@ -28,7 +28,20 @@ function plot(inputEntries, inputRecordingTimes, inputContacts) {
 		timeExtent: null,
 	}
 	data.ids = Object.keys(data.contacts)
-		.sort((a, b) => data.contacts[a].displayName.localeCompare(data.contacts[b].displayName));
+		.sort((a, b) => {
+			let nameA = data.contacts[a].displayName;
+			let nameB = data.contacts[b].displayName;
+
+			let unnamedA = nameA.endsWith('@c.us');
+			let unnamedB = nameB.endsWith('@c.us');
+
+			if (unnamedA != unnamedB) {
+				return unnamedA ? 1 : -1;
+			}
+			else {
+				return nameA.localeCompare(nameB);
+			}
+		});
 	data.timeExtent = [
 		d3.min(data.onlineRanges, (d) => d[0].time),
 		d3.max(data.onlineRanges, (d) => d[1].time)
