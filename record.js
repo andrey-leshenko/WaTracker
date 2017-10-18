@@ -108,7 +108,7 @@ window.onmessage = function(e) {
 				text = 'Sign in to WhatsApp to begin recording:';
 				break;
 			case State.LOGGED_IN:
-				text = 'Signed in but no recording';
+				text = 'Signed in but not recording';
 				break;
 			case State.RECORDING:
 				text = 'Recording';
