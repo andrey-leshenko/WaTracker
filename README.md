@@ -1,5 +1,6 @@
 # ![Icon](art/icon64.png) WaTracker
 
+Ever wondered what you can learn about people by stalking them in WhatsApp?
 WaTracker is a Chrome app that hooks into the WhatsApp web app at [web.whatsapp.com](https://web.whatsapp.com/)
 to repeatedly check if your friends are online.
 This information is collected and stored locally on your computer,
@@ -8,13 +9,6 @@ You can find out how much time they spend using WhatsApp,
 and if they use it a lot you can also know when they go to sleep or wake up!
 
 ![Timeline screenshot](screenshots/timeline.png)
-
-## Installation
-
-Open `chrome://extensions/`, enable the "Developer mode" checkbox at the top of the page,
-press "Load unpacked extension..." and select the folder with this app.
-Now you can open WaTracker just like a regular program.
-(If you're on Windows, search for it in the Start Menu)
 
 ## How It Came to Be
 
@@ -34,7 +28,7 @@ After wasting a lot of time exploring this direction, I finally found that many 
 I managed to get the presence information by subscribing to presence updates for each of the contacts
 and checking if they are online every second.
 
-To make stalking your friends a pleasant experience, WaTracker is built as a Chrome App with multiple windows:
+To make stalking your friends a pleasant experience, WaTracker is built as a Chrome App with the following windows:
 - The "record" window asks you to sign into a webview of [web.whatsapp.com](https://web.whatsapp.com/)
 so it can inject content scripts into the page and gather the presence information.
 - The "online" window shows which of your friends are currently online. (Works only if you are recording)
@@ -53,6 +47,13 @@ features of WhatsApp and me being a creep about it doesn't warrant a fix. I coul
 
 WhatsApp may add an option to disable the online indicator or throttle requests for status of multiple people.
 
+## Installation
+
+Open `chrome://extensions/`, enable the "Developer mode" checkbox at the top of the page,
+press "Load unpacked extension..." and select the folder with this app.
+Now you can open WaTracker just like a regular program.
+(If you're on Windows, search for it in the Start Menu)
+
 ## Known Issues
 
 Whenever my phone can't find any Wi-Fi network and begins using mobile internet,
@@ -60,8 +61,8 @@ the WhatsApp web app will claim it can't connect to the phone, and so the record
 
 ## Future Work
 
-WhatsApp has a "typing..." indicator. We could poll it to detect when someones starts typing a message
-and immediatly send him a "What are you typing?" message every time.
+Google has [announced](https://blog.chromium.org/2016/08/from-chrome-apps-to-web.html) the deprecation of Chrome Apps.
+Soon, WaTracker will need to be rewritten to some other platform to continue working.
 
 ## License
 
