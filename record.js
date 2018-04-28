@@ -53,20 +53,21 @@ let port = null;
 
 window.onmessage = function(e) {
 	let message = e.data;
-	console.log('Guest message', message);
+	console.log('Guest message', message, '#### TYPE: ', message.type);
 	outputToLog(JSON.stringify(message));
 
 	switch (message.type) {
+		case 'wa_logged_in':
 		case 'wa_stream_start':
 			if (!port)
 				port = chrome.runtime.connect({name: 'presenceUpdates'});
 			break;
-		case 'wa_stream_end':
+		/* case 'wa_stream_end':
 			if (port) {
 				port.disconnect();
 				port = null;
 			}
-			break;
+			break; */
 		case 'wa_presence_update':
 			if (port) {
 				port.postMessage(message.value);
@@ -87,13 +88,14 @@ window.onmessage = function(e) {
 		case 'wa_stream_start':
 			state = State.RECORDING;
 			break;
-		case 'wa_stream_end':
+		/* case 'wa_stream_end':
 			if (state == State.RECORDING)
 				state = State.LOGGED_IN;
-			break;
+			break; */
 		case 'wa_logged_in':
 			if (state == State.LOGGED_OUT)
 				state = State.LOGGED_IN;
+			state = State.RECORDING;
 			break;
 		case 'wa_logged_out':
 			state = State.LOGGED_OUT;
